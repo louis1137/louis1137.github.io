@@ -5676,9 +5676,10 @@ function logTeamResultsToConsole(teams) {
 		if (!appliedReservationSnapshot) return '';
 		const groups = appliedReservationSnapshot.groups;
 		if (Array.isArray(groups) && groups.length > 0) {
+			const seen = new Set();
 			return groups
 				.map((g) => g.map((n) => String(n || '').trim()).filter((n) => n.length > 0).join(','))
-				.filter((g) => g.length > 0)
+				.filter((g) => { if (!g.length || seen.has(g)) return false; seen.add(g); return true; })
 				.join('/');
 		}
 		if (Array.isArray(appliedReservationSnapshot.applied)) {
@@ -5895,9 +5896,10 @@ function saveGenerateHistory(teams) {
 		const appliedReservation = (() => {
 			const groups = appliedReservationSnapshot.groups;
 			if (Array.isArray(groups) && groups.length > 0) {
+				const seen = new Set();
 				return groups
 					.map((g) => g.map((n) => String(n || '').trim()).filter((n) => n.length > 0).join(','))
-					.filter((g) => g.length > 0)
+					.filter((g) => { if (!g.length || seen.has(g)) return false; seen.add(g); return true; })
 					.join('/');
 			}
 			return (appliedReservationSnapshot.applied || [])

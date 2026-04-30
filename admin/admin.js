@@ -30,7 +30,14 @@ let _isSaving = false;
 
 // 에디터 세션 타이머
 let _sessionTimerInterval = null;
-const _ADMIN_SESSION_STALE_MS = 5000; // heartbeat 5초 이상 없으면 비활성으로 간주
+const _ADMIN_SESSION_STALE_MS = 5000;
+
+// 목록 캐시 (구조 변경 감지용)
+const _listCache = { profiles: null, users: null };
+const SESSION_ONLY_FIELDS = new Set(['heartbeat','sessionStart','online','tokenOnline','sessionType','onlineUser','tokenOnlineUser','lastAccess']);
+
+// 에디터 캐시 (session-only 변경 감지용)
+let _editorDataCache = null;
 
 const ADMIN_ACCESS_SESSION_KEY = 'adminAccessAuthenticated';
 
@@ -1167,6 +1174,11 @@ function writeFormData(key, type, data) {
 	setFieldAvailability(type);
 	updateConditionalRows(type);
 	// 에디터 세션 타이머 (online 상태 + sessionStart 존재 시)
+	syncEditorSessionTimer(type, data);
+	_editorDataCache = data;
+}
+
+function syncEditorSessionTimer(type, data) {
 	if (data?.sessionStart && (data?.online === true || data?.tokenOnline === true)) {
 		const sessionUserCode = type === 'profiles'
 			? (data.sessionType === 'token' ? (data.tokenOnlineUser || data.onlineUser || '') : (data.onlineUser || ''))
@@ -1187,6 +1199,7 @@ function applySelectionStyles() {
 function setEditorHeader() {
 	const title = getEl('editorTitle');
 	const subtitle = getEl('editorSubtitle');
+	_editorDataCache = null;
 	if (!selected.type || !selected.key) {
 		title.textContent = '항목을 선택하세요';
 		subtitle.textContent = '왼쪽 리스트에서 profiles 또는 users를 선택하면 편집할 수 있습니다.';
@@ -1232,43 +1245,7 @@ function buildItemButton(type, key, data) {
 	button.dataset.key = key;
 	const dateValue = data?.timestamp || data?.lastAccess || data?.createdAt || '';
 	const displayKey = data?.deleted ? `${key} (deleted)` : key;
-	const isOnline = data?.online === true;
-	const isTokenOnline = type === 'profiles' && data?.tokenOnline === true;
-	const onlineUser = type === 'profiles' ? (data?.onlineUser || '') : '';
-	const tokenOnlineUser = type === 'profiles' ? (data?.tokenOnlineUser || '') : '';
-	const sessionActive = isSessionActive(data);
-	const sessionStart = data?.sessionStart;
-	const sessionType = data?.sessionType || '';
-	let onlineBadge = '';
-	if (type === 'profiles') {
-		if (sessionActive && sessionStart) {
-			const timeStr = formatSessionElapsed(sessionStart);
-			if (sessionType === 'token') {
-				const who = tokenOnlineUser || onlineUser;
-				onlineBadge += ` <span class="online-badge token-badge">${timeStr}${who ? ` ${escapeHtml(who)}` : ''} 토큰사용중</span>`;
-			} else {
-				const who = onlineUser;
-				onlineBadge += ` <span class="online-badge">${timeStr}${who ? ` ${escapeHtml(who)}` : ''} 로그인중</span>`;
-			}
-		} else {
-			if (isOnline) {
-				const label = onlineUser ? `${escapeHtml(onlineUser)} 로그인중` : '로그인중';
-				onlineBadge += ` <span class="online-badge">${label}</span>`;
-			}
-			if (isTokenOnline) {
-				const label = tokenOnlineUser ? `${escapeHtml(tokenOnlineUser)} 토큰사용중` : '토큰사용중';
-				onlineBadge += ` <span class="online-badge token-badge">${label}</span>`;
-			}
-		}
-	} else {
-		if (sessionActive && sessionStart) {
-			const timeStr = formatSessionElapsed(sessionStart);
-			onlineBadge += ` <span class="online-badge user-badge">${timeStr} 접속중</span>`;
-		} else if (isOnline) {
-			onlineBadge += ` <span class="online-badge user-badge">접속중</span>`;
-		}
-	}
-	button.innerHTML = `<span class="item-title">${displayKey}${onlineBadge}</span><span class="item-meta">${dateValue || 'no timestamp'}</span>`;
+	button.innerHTML = `<span class="item-title">${displayKey}${buildBadgeHtml(type, data)}</span><span class="item-meta">${dateValue || 'no timestamp'}</span>`;
 	button.addEventListener('click', async () => {
 		showEditorView();
 		selected = { type, key };
@@ -1321,6 +1298,73 @@ function getCreatedAtSortValue(type, data) {
 	return toSortableTime(data?.timestamp || data?.lastAccess);
 }
 
+function buildBadgeHtml(type, data) {
+	const isOnline = data?.online === true;
+	const isTokenOnline = type === 'profiles' && data?.tokenOnline === true;
+	const onlineUser = type === 'profiles' ? (data?.onlineUser || '') : '';
+	const tokenOnlineUser = type === 'profiles' ? (data?.tokenOnlineUser || '') : '';
+	const sessionActive = isSessionActive(data);
+	const sessionStart = data?.sessionStart;
+	const sessionType = data?.sessionType || '';
+	let html = '';
+	if (type === 'profiles') {
+		if (sessionActive && sessionStart) {
+			const timeStr = formatSessionElapsed(sessionStart);
+			if (sessionType === 'token') {
+				const who = tokenOnlineUser || onlineUser;
+				html += ` <span class="online-badge token-badge">${timeStr}${who ? ` ${escapeHtml(who)}` : ''} 토큰사용중</span>`;
+			} else {
+				const who = onlineUser;
+				html += ` <span class="online-badge">${timeStr}${who ? ` ${escapeHtml(who)}` : ''} 로그인중</span>`;
+			}
+		} else {
+			if (isOnline) {
+				const label = onlineUser ? `${escapeHtml(onlineUser)} 로그인중` : '로그인중';
+				html += ` <span class="online-badge">${label}</span>`;
+			}
+			if (isTokenOnline) {
+				const label = tokenOnlineUser ? `${escapeHtml(tokenOnlineUser)} 토큰사용중` : '토큰사용중';
+				html += ` <span class="online-badge token-badge">${label}</span>`;
+			}
+		}
+	} else {
+		if (sessionActive && sessionStart) {
+			const timeStr = formatSessionElapsed(sessionStart);
+			html += ` <span class="online-badge user-badge">${timeStr} 접속중</span>`;
+		} else if (isOnline) {
+			html += ` <span class="online-badge user-badge">접속중</span>`;
+		}
+	}
+	return html;
+}
+
+function updateListBadgesInPlace(type, values) {
+	const listEl = getEl(type === 'profiles' ? 'profilesList' : 'usersList');
+	Object.entries(values || {}).forEach(([key, data]) => {
+		const btn = listEl.querySelector(`.item-btn[data-key="${CSS.escape(key)}"]`);
+		if (!btn) return;
+		const titleSpan = btn.querySelector('.item-title');
+		if (!titleSpan) return;
+		const displayKey = data?.deleted ? `${key} (deleted)` : key;
+		titleSpan.innerHTML = `${displayKey}${buildBadgeHtml(type, data)}`;
+	});
+}
+
+function needsFullRender(type, newData) {
+	const old = _listCache[type];
+	if (!old) return true;
+	const toKeys = (d) => Object.keys(d || {}).filter(k => !d[k]?.deleted).sort().join('\0');
+	if (toKeys(newData) !== toKeys(old)) return true;
+	for (const key of Object.keys(newData)) {
+		const n = newData[key] || {};
+		const o = old[key] || {};
+		for (const field of Object.keys(n)) {
+			if (!SESSION_ONLY_FIELDS.has(field) && JSON.stringify(n[field]) !== JSON.stringify(o[field])) return true;
+		}
+	}
+	return false;
+}
+
 function renderList(type, values) {
 	const listElement = getEl(type === 'profiles' ? 'profilesList' : 'usersList');
 	const countElement = getEl(type === 'profiles' ? 'profilesCount' : 'usersCount');
@@ -1367,9 +1411,25 @@ function teardownSelectedListener() {
 	_selectedListenerCallback = null;
 }
 
+function isSessionOnlyChange(newData) {
+	if (!_editorDataCache) return false;
+	const old = _editorDataCache;
+	for (const field of Object.keys(newData)) {
+		if (!SESSION_ONLY_FIELDS.has(field) && JSON.stringify(newData[field]) !== JSON.stringify(old[field])) return false;
+	}
+	for (const field of Object.keys(old)) {
+		if (!SESSION_ONLY_FIELDS.has(field) && JSON.stringify(old[field]) !== JSON.stringify(newData[field])) return false;
+	}
+	return true;
+}
+
 function updateEditorIfSelected(type, key, data) {
 	if (selected.type === type && selected.key === key && !_isSaving) {
-		writeFormData(key, type, data);
+		if (isSessionOnlyChange(data)) {
+			syncEditorSessionTimer(type, data);
+		} else {
+			writeFormData(key, type, data);
+		}
 	}
 }
 
@@ -1379,7 +1439,12 @@ function setupRealtimeListeners() {
 	_profilesListenerRef = database.ref('profiles');
 	_profilesListenerRef.on('value', (snapshot) => {
 		const values = snapshot.val() || {};
-		renderList('profiles', values);
+		if (needsFullRender('profiles', values)) {
+			renderList('profiles', values);
+		} else {
+			updateListBadgesInPlace('profiles', values);
+		}
+		_listCache.profiles = values;
 		if (selected.type === 'profiles' && selected.key && values[selected.key]) {
 			updateEditorIfSelected('profiles', selected.key, values[selected.key]);
 		}
@@ -1388,7 +1453,12 @@ function setupRealtimeListeners() {
 	_usersListenerRef = database.ref('users');
 	_usersListenerRef.on('value', (snapshot) => {
 		const values = snapshot.val() || {};
-		renderList('users', values);
+		if (needsFullRender('users', values)) {
+			renderList('users', values);
+		} else {
+			updateListBadgesInPlace('users', values);
+		}
+		_listCache.users = values;
 		if (selected.type === 'users' && selected.key && values[selected.key]) {
 			updateEditorIfSelected('users', selected.key, values[selected.key]);
 		}
@@ -1403,7 +1473,11 @@ function setupSelectedItemListener(type, key) {
 		if (_isSaving) return;
 		const data = snapshot.val();
 		if (!data) return;
-		writeFormData(key, type, data);
+		if (isSessionOnlyChange(data)) {
+			syncEditorSessionTimer(type, data);
+		} else {
+			writeFormData(key, type, data);
+		}
 	};
 
 	_selectedListenerRef = database.ref(`${type}/${key}`);
