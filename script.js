@@ -3946,28 +3946,32 @@ function openForbiddenWindow() {
 			}
 			doc.open();
 			doc.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${commandConsoleMessages.comments.constraintManagement}</title><style>
-				:root{--accent:#667eea;--bg:#ffffff;--muted:#666}
-				body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:18px;background:var(--bg);color:#111}
-				header{background:linear-gradient(135deg,var(--accent) 0%, #764ba2 100%);color:#fff;padding:14px;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
-				h1{margin:0;font-size:18px}
-				.reset-all-btn{background:#ef4444;border:none;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s}
-				.reset-all-btn:hover{background:#dc2626;transform:scale(1.05)}
+				:root{--btn_main:#2c78dd;--btn_sub:#df4a65}
+				body{font-family:'Pretendard','Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:18px;background:#f3f4f8;color:#0f172a;font-size:16px}
+				header{background:white;color:#0f172a;padding:14px 16px;border-radius:12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid #e5e7eb}
+				h1{margin:0;font-size:18px;font-weight:700}
+				.reset-all-btn{background:var(--btn_sub);border:none;color:#fff;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;transition:background 0.18s}
+				.reset-all-btn:hover{background:#dc2626}
 				.add-form{display:flex;gap:8px;margin:12px 0}
-				.add-form input{flex:1;padding:8px;border:1px solid #ddd;border-radius:8px}
-				.add-form button{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+				.add-form input{flex:1;padding:10px 14px;border:1px solid #ddd;border-radius:4px;font-size:1rem;font-family:inherit;outline:none;transition:border-color 0.15s;background:white}
+				.add-form input:focus{border-color:var(--btn_main)}
+				.add-form button{padding:10px 16px;border-radius:4px;border:none;background:var(--btn_main);color:#fff;cursor:pointer;font-size:1rem;font-weight:600;transition:background 0.18s;font-family:inherit}
+				.add-form button:hover{background:#1d4ed8}
 				section{margin-bottom:12px}
-				h2{font-size:14px;margin:8px 0}
+				h2{font-size:14px;font-weight:600;color:#374151;margin:8px 0}
 				ul{list-style:none;padding-left:0}
-				li{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;border:1px solid #eef2ff;background:#fbfcff;margin-bottom:8px}
-				li .label{font-weight:600}
-				.remove-btn{background:#ef4444;border:none;color:#fff;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer}
-				.empty{color:#999;padding:8px}
+				li{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;border:1px solid #e5e7eb;background:white;margin-bottom:8px;font-size:0.95rem}
+				li .label{font-weight:600;color:#0f172a}
+				.remove-btn{background:var(--btn_sub);border:none;color:#fff;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;transition:background 0.15s;flex-shrink:0}
+				.remove-btn:hover{background:#dc2626}
+				.empty{color:#9ca3af;padding:8px;font-size:0.9rem}
 				.initial-modal{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-				.initial-modal .modal-content{background:#fff;padding:24px;border-radius:12px;text-align:center;max-width:90%;box-shadow:0 10px 30px rgba(0,0,0,0.2);transform-origin:top;transform:scaleY(1)}
+				.initial-modal .modal-content{background:#fff;padding:24px;border-radius:16px;text-align:center;max-width:90%;transform-origin:top}
 				.initial-modal:not(.visible) .modal-content{transform:scaleY(0);opacity:0}
 				.initial-modal.visible .modal-content{transform:scaleY(1);opacity:1}
-				.modal-show-btn{background:var(--accent);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:1.1rem;cursor:pointer}
-				.initial-modal .warn{margin-top:8px;color:#ef4444;font-size:12px;font-weight:400;line-height:1.2}
+				.modal-show-btn{background:var(--btn_main);color:#fff;border:none;padding:12px 28px;border-radius:4px;font-size:1.1rem;cursor:pointer;font-weight:600;transition:background 0.18s;font-family:inherit}
+				.modal-show-btn:hover{background:#1d4ed8}
+				.initial-modal .warn{margin-top:8px;color:var(--btn_sub);font-size:12px;font-weight:400;line-height:1.2}
 			</style></head><body>
 			<header><h1>${commandConsoleMessages.comments.constraintConnection}</h1><button id="resetAllBtn" class="reset-all-btn">${commandConsoleMessages.comments.resetButton}</button></header>
 			<div id="initialModal" class="initial-modal visible">
