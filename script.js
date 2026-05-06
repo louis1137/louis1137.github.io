@@ -33,13 +33,13 @@ const state = {
 	requiredGroups: [],
 	forbiddenPairs: [], // [idA, idB] 형식의 배열
 	forbiddenMap: {},   // forbiddenPairs에서 만들어진 빠른 조회용 맵
-	pendingConstraints: [], // {left: 정규화, right: 정규화} 형식의 보류 제약 배열
-	probabilisticForbiddenPairs: [], // {left: 정규화, right: 정규화, probability} 형식의 확률 제약
+	pendingConstraints: [], // {left: 정규화, right: 정규화} 형식의 보류 분리 배열
+	probabilisticForbiddenPairs: [], // {left: 정규화, right: 정규화, probability} 형식의 확률 분리
 	hiddenGroups: [], // [idA, idB, probability] 형식의 배열 - 확률 기반 히든 그룹
 	hiddenGroupChains: [], // [{primary: "이름", candidates: [{name: "이름", probability}]}] 형식 - 체이닝 히든 그룹 (규칙)
 	activeHiddenGroupMap: {}, // 현재 팀 생성에서 활성화된 히든 그룹 맵 (임시)
 	activeHiddenGroupChainInfo: {}, // 체이닝 정보 맵 { primaryId: { partnerId: probability } }
-	activeProbabilisticForbiddenPairs: [], // 현재 팀 생성에서 활성화된 확률 제약 쌍
+	activeProbabilisticForbiddenPairs: [], // 현재 팀 생성에서 활성화된 확률 분리 쌍
 	pendingHiddenGroups: [], // {left: 정규화, right: 정규화, probability: 숫자} 형식의 보류 히든 그룹 배열
 	pendingHiddenGroupChains: [], // [{primary: 정규화, candidates: [{name, probability}]}] 형식 - 보류 체이닝
 	reservations: [], // [["A","B","C","D"], ["E","F"], ...] 형식의 예약 스택 (인덱스 0이 다음 사용될 예약)
@@ -409,14 +409,14 @@ function init() {
 	}
 
 	renderPeople();
-	// 제약(금지) 쌍 맵 준비
+	// 분리(금지) 쌍 맵 준비
 	buildForbiddenMap();
-	// 이전에 참가자가 추가되어 있다면 보류 중인 텍스트 제약을 해결 시도
+	// 이전에 참가자가 추가되어 있다면 보류 중인 텍스트 분리을 해결 시도
 	tryResolvePendingConstraints();
 	// 이전에 참가자가 추가되어 있다면 보류 중인 히든 그룹을 해결 시도
 	tryResolveHiddenGroups();
 
-	// 제약 목록 확인 레이어 이벤트 리스너
+	// 분리 목록 확인 레이어 이벤트 리스너
 	const constraintNotificationConfirm = document.getElementById('constraintNotificationConfirm');
 	const constraintNotificationCancel = document.getElementById('constraintNotificationCancel');
 
@@ -426,7 +426,7 @@ function init() {
 	});
 
 	if (constraintNotificationCancel) constraintNotificationCancel.addEventListener('click', () => {
-		// 제약 초기화
+		// 분리 초기화
 		state.forbiddenPairs = [];
 		state.pendingConstraints = [];
 		state.forbiddenMap = {};
@@ -716,7 +716,7 @@ function autoDetectAndCheckOptions() {
 	}
 }
 
-// 제약 목록 확인 레이어 표시
+// 분리 목록 확인 레이어 표시
 function showConstraintNotification() {
 	const layer = document.getElementById('constraintNotificationLayer');
 	if (layer) {
@@ -729,7 +729,7 @@ function showConstraintNotification() {
 	}
 }
 
-// 제약 목록 확인 레이어 숨김
+// 분리 목록 확인 레이어 숨김
 function hideConstraintNotification() {
 	const layer = document.getElementById('constraintNotificationLayer');
 	if (layer) {
@@ -1598,7 +1598,7 @@ function resetAll(e) {
 		}
 	}
 
-	// 적용된(id 기반) 제약을 이름 기반 보류 제약으로 변환하여 유지
+	// 적용된(id 기반) 분리을 이름 기반 보류 분리으로 변환하여 유지
 	let converted = 0;
 	state.forbiddenPairs.forEach(([a, b]) => {
 		const pa = state.people.find(p => p.id === a);
@@ -1629,11 +1629,11 @@ function resetAll(e) {
 		});
 	}
 
-	// 참가자 및 그룹 목록 초기화(보류 제약은 유지)
+	// 참가자 및 그룹 목록 초기화(보류 분리은 유지)
 	state.people = [];
 	state.requiredGroups = [];
 	state.nextId = 1;
-	state.forbiddenPairs = []; // id 기반 제약 초기화(보류로 전환됨)
+	state.forbiddenPairs = []; // id 기반 분리 초기화(보류로 전환됨)
 	state.forbiddenMap = {};
 	state.hiddenGroups = []; // id 기반 히든 그룹 초기화
 	// state.hiddenGroupChains는 초기화하지 않음 (규칙은 cmd의 초기화로만 삭제 가능)
@@ -1839,7 +1839,7 @@ function addPerson(fromConsole = false, options = {}) {
 		autoDetectAndCheckOptions();
 	}
 
-	// '/'로 분리하여 토큰 처리; '!'가 포함된 토큰은 제약, 아니면 이름/그룹으로 처리
+	// '/'로 분리하여 토큰 처리; '!'가 포함된 토큰은 분리, 아니면 이름/그룹으로 처리
 	const tokens = input.split('/').map(t => t.trim()).filter(t => t !== '');
 
 	if (tokens.length === 0) {
@@ -1855,7 +1855,7 @@ function addPerson(fromConsole = false, options = {}) {
 	tokens.forEach(token => {
 		// cmd 콘솔에서만 확률 규칙 처리
 		if (fromConsole) {
-				// 확률 제약 체이닝 체크: A(!50)B(!50)C(!50)D 패턴
+				// 확률 분리 체이닝 체크: A(!50)B(!50)C(!50)D 패턴
 				const probabilisticChainPattern = /^([^(]+)(?:\(!\s*(\d+)\s*\)([^(]*?))+$/;
 				if (probabilisticChainPattern.test(token)) {
 					// 체인 파싱
@@ -1883,7 +1883,7 @@ function addPerson(fromConsole = false, options = {}) {
 					}
 
 					if (firstPart && parts.length > 0) {
-						// 각 쌍에 대해 확률 제약 등록
+						// 각 쌍에 대해 확률 분리 등록
 						const primaryName = firstPart.trim();
 						let addedCount = 0;
 						parts.forEach(part => {
@@ -1896,11 +1896,11 @@ function addPerson(fromConsole = false, options = {}) {
 							saveToLocalStorage();
 							constraintsTouched = true;
 						}
-						return; // 확률 제약 체인 처리 완료
+						return; // 확률 분리 체인 처리 완료
 					}
 				}
 
-				// 확률 제약 등록: A(!10)B
+				// 확률 분리 등록: A(!10)B
 				const probabilisticForbiddenPattern = /^([^()!]+)\(!\s*(\d+)\s*\)([^()!]+)$/;
 				const probabilisticMatch = token.match(probabilisticForbiddenPattern);
 				if (probabilisticMatch) {
@@ -1914,7 +1914,7 @@ function addPerson(fromConsole = false, options = {}) {
 							constraintsTouched = true;
 						}
 					}
-					return; // 확률 제약 처리 완료
+					return; // 확률 분리 처리 완료
 				}
 
 			// 체이닝 제거 패턴: A(!), A(!)B, A(!)B(!)C
@@ -2063,7 +2063,7 @@ function addPerson(fromConsole = false, options = {}) {
 					// 규칙으로 등록 (참가자 존재 여부와 무관)
 					const primaryName = firstPart.trim();
 					const candidates = parts.map(p => ({ name: p.name.trim(), probability: p.probability }));
-					// 동일한 확률 제약이 있으면 제거 (A(!10)B -> A(10)B)
+					// 동일한 확률 분리이 있으면 제거 (A(!10)B -> A(10)B)
 					candidates.forEach(candidate => {
 						const removedProb = removeProbabilisticForbiddenPairByNames(primaryName, candidate.name);
 						if (removedProb > 0) {
@@ -2103,7 +2103,7 @@ function addPerson(fromConsole = false, options = {}) {
 				const probability = parseInt(hiddenGroupMatch[2]);
 				const rightName = hiddenGroupMatch[3].trim();
 				if (leftName && rightName && probability >= 0 && probability <= 100) {
-					// 동일한 확률 제약이 있으면 제거 (A(!10)B -> A(10)B)
+					// 동일한 확률 분리이 있으면 제거 (A(!10)B -> A(10)B)
 					const removedProb = removeProbabilisticForbiddenPairByNames(leftName, rightName);
 					if (removedProb > 0) {
 						constraintsTouched = true;
@@ -2134,7 +2134,7 @@ function addPerson(fromConsole = false, options = {}) {
 		// fromConsole 블록 종료
 
 		if (token.includes('!')) {
-			// 한 입력에서 여러 제약 처리: "A!B!C!D" 또는 "A!B,C!E"
+			// 한 입력에서 여러 분리 처리: "A!B!C!D" 또는 "A!B,C!E"
 			// 먼저 쉼표로 분리하여 "A!B,C!E" -> ["A!B", "C!E"] 형태로 처리
 			const constraintParts = token.split(',').map(p => p.trim()).filter(p => p !== '');
 
@@ -2144,17 +2144,17 @@ function addPerson(fromConsole = false, options = {}) {
 					const [left, right] = constraint.split('!!').map(s => s.trim());
 					if (left && right) {
 						const rres = removeForbiddenPairByNames(left, right);
-						if (!rres.ok) console.log('보류/적용 제약 제거 실패:', rres.message);
+						if (!rres.ok) console.log('보류/적용 분리 제거 실패:', rres.message);
 						else { constraintsTouched = true; }
-						// 명령어로 제약 제거 시 창 열기
+						// 명령어로 분리 제거 시 창 열기
 						safeOpenForbiddenWindow();
 					}
 				}
-				// 쌍 제약 처리: A!B!C!D -> 모든 조합 쌍 생성
+				// 쌍 분리 처리: A!B!C!D -> 모든 조합 쌍 생성
 				else if (constraint.includes('!')) {
 					const names = constraint.split('!').map(s => s.trim()).filter(s => s !== '');
 
-					// 모든 조합에 대해 쌍 제약 생성
+					// 모든 조합에 대해 쌍 분리 생성
 					for (let i = 0; i < names.length; i++) {
 						for (let j = i + 1; j < names.length; j++) {
 							const ln = names[i];
@@ -2172,7 +2172,7 @@ function addPerson(fromConsole = false, options = {}) {
 							} else {
 								const pres = addPendingConstraint(ln, rn);
 								if (pres.ok) constraintsTouched = true;
-								// 보류 제약도 사용자가 명시적으로 !를 입력했으므로 창 표시
+								// 보류 분리도 사용자가 명시적으로 !를 입력했으므로 창 표시
 								safeOpenForbiddenWindow();
 							}
 						}
@@ -2215,7 +2215,7 @@ function addPerson(fromConsole = false, options = {}) {
 
 	const hasInputDuplicates = duplicatesAcrossTokens.length > 0;
 
-	// 제약 처리만 있었다면 입력창 초기화
+	// 분리 처리만 있었다면 입력창 초기화
 	if (constraintsTouched && pendingNamesData.length === 0) {
 		elements.nameInput.value = '';
 		elements.nameInput.focus();
@@ -2318,13 +2318,13 @@ function processAddPerson(pendingNamesData, groupColorIndices) {
 		return group.filter(pid => !duplicateIds.includes(pid));
 	}).filter(group => group.length > 1);
 
-	// 4단계: 제약 조건에서도 중복된 사람들 제거
+	// 4단계: 분리 조건에서도 중복된 사람들 제거
 	duplicateIds.forEach(id => {
 		const before = state.forbiddenPairs.length;
 		state.forbiddenPairs = state.forbiddenPairs.filter(([a, b]) => a !== id && b !== id);
 		const after = state.forbiddenPairs.length;
 		if (before !== after) {
-			console.log(`제약 제거: 삭제된 사람(id:${id})과 관련된 제약 ${before - after}개가 제거되었습니다.`);
+			console.log(`분리 제거: 삭제된 사람(id:${id})과 관련된 분리 ${before - after}개가 제거되었습니다.`);
 		}
 	});
 	buildForbiddenMap();
@@ -2427,7 +2427,7 @@ function processAddPerson(pendingNamesData, groupColorIndices) {
 	if (addedAny) {
 		saveToLocalStorage();
 		renderPeople();
-		// 사람을 추가한 이후 보류 중인 텍스트 제약을 해결 시도
+		// 사람을 추가한 이후 보류 중인 텍스트 분리을 해결 시도
 		tryResolvePendingConstraints();
 		// 사람을 추가한 이후 보류 중인 히든 그룹을 해결 시도
 		tryResolveHiddenGroups();
@@ -2460,7 +2460,7 @@ function removePerson(id, isCompleteDelete = false) {
 	state.requiredGroups = state.requiredGroups.map(group => group.filter(pid => pid !== id));
 	state.requiredGroups = state.requiredGroups.filter(group => group.length > 1);
 
-	// 이 사람이 포함된 제약을 이름 기반 보류 제약으로 변환 (제약 유지)
+	// 이 사람이 포함된 분리을 이름 기반 보류 분리으로 변환 (분리 유지)
 	if (person) {
 		const personName = normalizeName(person.name);
 		state.forbiddenPairs.forEach(([a, b]) => {
@@ -2468,21 +2468,21 @@ function removePerson(id, isCompleteDelete = false) {
 				const otherPerson = state.people.find(p => p.id === (a === id ? b : a));
 				if (otherPerson) {
 					const otherName = normalizeName(otherPerson.name);
-					// 보류 제약으로 변환
+					// 보류 분리으로 변환
 					const exists = state.pendingConstraints.some(pc =>
 						(pc.left === personName && pc.right === otherName) ||
 						(pc.left === otherName && pc.right === personName)
 					);
 					if (!exists) {
 						state.pendingConstraints.push({ left: personName, right: otherName });
-						console.log(`제약 보존: ${person.name} - ${otherPerson.name} 제약이 보류 상태로 변환되었습니다.`);
+						console.log(`분리 보존: ${person.name} - ${otherPerson.name} 분리이 보류 상태로 변환되었습니다.`);
 					}
 				}
 			}
 		});
 	}
 
-	// id 기반 제약 제거 (이미 보류로 변환됨)
+	// id 기반 분리 제거 (이미 보류로 변환됨)
 	state.forbiddenPairs = state.forbiddenPairs.filter(([a, b]) => a !== id && b !== id);
 	buildForbiddenMap();
 
@@ -3111,7 +3111,7 @@ async function tryAutoLogin() {
 	updateLoginUI();
 }
 
-// --- 제약 및 이름 정규화 관련 헬퍼 함수들 ---
+// --- 분리 및 이름 정규화 관련 헬퍼 함수들 ---
 function normalizeName(name) {
 	// 괄호 패턴 제거: 이름(남100) -> 이름
 	const withoutParentheses = (name || '').replace(/\([^)]*\)$/, '').trim();
@@ -3243,7 +3243,7 @@ function removeHiddenRulePairByNames(nameA, nameB) {
 	return removed;
 }
 
-// 확률 제약 등록 (이름 기반, 참가자 없어도 등록 가능)
+// 확률 분리 등록 (이름 기반, 참가자 없어도 등록 가능)
 function addProbabilisticForbiddenPairByNames(nameA, nameB, probability) {
 	const left = normalizeName(nameA);
 	const right = normalizeName(nameB);
@@ -3273,7 +3273,7 @@ function addProbabilisticForbiddenPairByNames(nameA, nameB, probability) {
 	return { ok: true, added: true };
 }
 
-// 이름 기반 보류 제약 추가 (참가자가 없어도 추가 가능)
+// 이름 기반 보류 분리 추가 (참가자가 없어도 추가 가능)
 function addPendingConstraint(leftName, rightName) {
 	const l = normalizeName(leftName);
 	const r = normalizeName(rightName);
@@ -3286,7 +3286,7 @@ function addPendingConstraint(leftName, rightName) {
 	return { ok: true };
 }
 
-// 새 참가자 추가 시 보류 제약을 해결하려 시도
+// 새 참가자 추가 시 보류 분리을 해결하려 시도
 function tryResolvePendingConstraints() {
 	if (!state.pendingConstraints.length) return;
 	let changed = false;
@@ -3345,7 +3345,7 @@ function getTeamAnimDurationMs() {
 
 
 
-// 이름으로 제약 제거 (적용된 id 기반 제약 또는 보류 제약 모두 지원). 순서는 무관합니다.
+// 이름으로 분리 제거 (적용된 id 기반 분리 또는 보류 분리 모두 지원). 순서는 무관합니다.
 function removeForbiddenPairByNames(nameA, nameB) {
 	const na = normalizeName(nameA);
 	const nb = normalizeName(nameB);
@@ -3353,7 +3353,7 @@ function removeForbiddenPairByNames(nameA, nameB) {
 		console.log(commandConsoleMessages.comments.constraintRemoveFailed);
 		return { ok: false, message: commandConsoleMessages.comments.constraintRemoveFailed };
 	}
-	// 둘 다 존재하면 적용된(id 기반) 제약을 먼저 제거 시도
+	// 둘 다 존재하면 적용된(id 기반) 분리을 먼저 제거 시도
 	const pa = findPersonByName(na);
 	const pb = findPersonByName(nb);
 	if (pa && pb) {
@@ -3365,7 +3365,7 @@ function removeForbiddenPairByNames(nameA, nameB) {
 			return { ok: true };
 		}
 	}
-	// 적용된 제약을 찾지 못했거나 사람이 없으면 보류 중인 텍스트 제약(순서 무관)을 제거
+	// 적용된 분리을 찾지 못했거나 사람이 없으면 보류 중인 텍스트 분리(순서 무관)을 제거
 	const beforePending = state.pendingConstraints.length;
 	state.pendingConstraints = state.pendingConstraints.filter(pc => !( (pc.left === na && pc.right === nb) || (pc.left === nb && pc.right === na) ));
 	if (state.pendingConstraints.length !== beforePending) {
@@ -3492,7 +3492,7 @@ function removeTemporaryReservationGroup() {
 	// 별도 처리 불필요
 }
 
-// 팀 생성 시 확률 제약 활성화 (확률 기반 금지)
+// 팀 생성 시 확률 분리 활성화 (확률 기반 금지)
 function activateProbabilisticForbiddenPairsForTeamGeneration() {
 	state.activeProbabilisticForbiddenPairs = [];
 	state.probabilisticForbiddenPairs.forEach(rule => {
@@ -4135,7 +4135,7 @@ function renderForbiddenWindowContent() {
 	// 초기화
 	appliedList.innerHTML = '';
 	pendingList.innerHTML = '';
-	// 적용된 제약
+	// 적용된 분리
 	if (state.forbiddenPairs.length) {
 		const ul = doc.createElement('ul');
 		state.forbiddenPairs.forEach(([a,b]) => {
@@ -4157,7 +4157,7 @@ function renderForbiddenWindowContent() {
 	} else {
 		const p = doc.createElement('div'); p.className='empty'; p.textContent=commandConsoleMessages.comments.noneText; appliedList.appendChild(p);
 	}
-	// 대기중인 제약
+	// 대기중인 분리
 	if (state.pendingConstraints.length) {
 		const ul2 = doc.createElement('ul');
 		state.pendingConstraints.forEach(pc => {
@@ -4186,7 +4186,7 @@ function safeOpenForbiddenWindow() {
 	}
 }
 
-// 모든 제약 초기화 함수 (자식창에서 호출용)
+// 모든 분리 초기화 함수 (자식창에서 호출용)
 function clearAllConstraints() {
 	state.forbiddenPairs = [];
 	state.pendingConstraints = [];
@@ -4383,7 +4383,7 @@ function getPotentialDuplicatesFromInput() {
 	const tokens = input.split('/').map(t => t.trim()).filter(t => t !== '');
 
 	tokens.forEach(token => {
-		// 제약 조건(!로 시작하는 것)은 무시
+		// 분리 조건(!로 시작하는 것)은 무시
 		if (token.includes('!')) return;
 
 		// 쉼표로 구분된 이름들 추출
@@ -4522,7 +4522,7 @@ async function shuffleTeams() {
 	currentTeams = teams;
 	isValidated = false;
 
-	// 팀 생성시 제약 레이어가 열려있으면 내리기
+	// 팀 생성시 분리 레이어가 열려있으면 내리기
 	hideConstraintNotification();
 
 	// 캡처 버튼 상태 초기화
@@ -4612,7 +4612,7 @@ function generateTeams(people, reservation = null) {
 		}
 	}
 
-	// 유효성 검사: 필수 그룹 내에 금지 제약 쌍이 포함되어 있으면 안 됨
+	// 유효성 검사: 필수 그룹 내에 금지 분리 쌍이 포함되어 있으면 안 됨
 	for (const group of state.requiredGroups) {
 		for (let i = 0; i < group.length; i++) {
 			for (let j = i + 1; j < group.length; j++) {
@@ -4707,7 +4707,7 @@ function generateTeams(people, reservation = null) {
 	};
 
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
-		// 각 시도마다 확률적 제약과 히든 그룹을 새로 샘플링
+		// 각 시도마다 확률적 분리과 히든 그룹을 새로 샘플링
 		activateProbabilisticForbiddenPairsForTeamGeneration();
 		activateHiddenGroupsForTeamGeneration();
 		const activeReservationIdSet = new Set(reservationBaseIdSet);
@@ -4801,7 +4801,7 @@ function generateTeams(people, reservation = null) {
 				let selectedTeam = -1;
 
 				for (const i of teamOrder) {
-					// 인원 수 제약 체크
+					// 인원 수 분리 체크
 					if (state.maxTeamSizeEnabled) {
 						if (i < teams.length - 1 && teams[i].length + blockMembers.length > state.membersPerTeam) continue;
 					} else {
@@ -4902,14 +4902,14 @@ function generateTeams(people, reservation = null) {
 
 			// 가중치 낮은 팀부터 조건 확인
 			for (const i of teamOrder) {
-				// 체크 1: 인원 수 제약
+				// 체크 1: 인원 수 분리
 				if (state.maxTeamSizeEnabled) {
 					if (i < teams.length - 1 && teams[i].length + groupMembers.length > state.membersPerTeam) continue;
 				} else {
 					if (teams[i].length + groupMembers.length > state.membersPerTeam) continue;
 				}
 
-				// 체크 2: 충돌(금지 제약) 없음
+				// 체크 2: 충돌(금지 분리) 없음
 				let hasConflict = false;
 				for (const gm of groupMembers) {
 					if (teams[i].some((tm) => {
@@ -5028,7 +5028,7 @@ function generateTeams(people, reservation = null) {
 
 			// 우선순위 팀부터 조건 확인
 			for (const i of teamOrder) {
-				// 체크 1: 인원 수 제약
+				// 체크 1: 인원 수 분리
 				if (state.maxTeamSizeEnabled) {
 					if (i < teams.length - 1 && teams[i].length >= state.membersPerTeam) continue;
 				} else {
@@ -5036,7 +5036,7 @@ function generateTeams(people, reservation = null) {
 					if (teams[i].length >= state.membersPerTeam) continue;
 				}
 
-				// 체크 2: 충돌(금지 제약) 없음
+				// 체크 2: 충돌(금지 분리) 없음
 				if (teams[i].some((tm) => {
 					if (isReservationOverridePair(tm.id, person.id, activeReservationIdSet)) {
 						return false;
@@ -5638,7 +5638,7 @@ function logTeamResultsToConsole(teams) {
 		}
 	}
 
-	// 확률 제약 규칙 출력 (A(!10)B)
+	// 확률 분리 규칙 출력 (A(!10)B)
 	if (state.activeProbabilisticForbiddenPairs && state.activeProbabilisticForbiddenPairs.length > 0) {
 		const probRules = state.activeProbabilisticForbiddenPairs.map(rule => {
 			appliedRulesSnapshot.push({
@@ -6704,7 +6704,7 @@ function swapToBalanceWeight(teams, teamWeights, minTeamIdx, maxTeamIdx) {
 
 	// 각 후보에 대해 교체 가능성 검사
 	for (const maxTeamTargetPerson of candidates) {
-		// 제약 확인
+		// 분리 확인
 		if (isForbidden(minTeamMaxPerson.id, maxTeamTargetPerson.id)) {
 			continue;
 		}
@@ -6819,7 +6819,7 @@ function validateAndFixTeamSizeBalance(teams) {
 					for (const candidate of individuals) {
 						const candidateWeight = candidate.weight || 0;
 
-						// 제약 확인
+						// 분리 확인
 						let hasConstraint = false;
 						for (const teamMember of teams[minSizeTeam.teamIdx]) {
 							if (isForbidden(candidate.id, teamMember.id)) {
@@ -6932,7 +6932,7 @@ function canMoveMemberToTeamGenderOnly(teams, member, fromTeamIdx, toTeamIdx) {
 function canMoveMemberToTeam(teams, member, fromTeamIdx, toTeamIdx) {
 	const toTeam = teams[toTeamIdx];
 
-	// 1. 제약 조건 확인
+	// 1. 분리 조건 확인
 	for (const teamMember of toTeam) {
 		if (isForbidden(member.id, teamMember.id)) {
 			return false;
@@ -7074,7 +7074,7 @@ function swapToBalanceBlocks(teams, maxTeamIdx, minTeamIdx, minorityGender) {
 
 		maxTeamIndividuals.forEach(maxPerson => {
 			minTeam.forEach(minPerson => {
-				// 그룹이 아니고, 히든 그룹이 아니고, 제약이 없는 경우만
+				// 그룹이 아니고, 히든 그룹이 아니고, 분리이 없는 경우만
 				const groupIndex = getPersonGroupIndex(minPerson.id);
 				if (groupIndex !== -1) return;
 				// 히든 그룹 체크
@@ -7104,7 +7104,7 @@ function swapToBalanceBlocks(teams, maxTeamIdx, minTeamIdx, minorityGender) {
 			const maxPerson = maxTeamIndividuals[Math.floor(Math.random() * maxTeamIndividuals.length)];
 			const minPerson = minTeamIndividuals[Math.floor(Math.random() * minTeamIndividuals.length)];
 
-			// 제약 확인
+			// 분리 확인
 			if (!isForbidden(maxPerson.id, minPerson.id)) {
 				targetPerson = { from: maxPerson, to: minPerson };
 			}

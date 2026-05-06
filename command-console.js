@@ -47,7 +47,7 @@ const commandConsole = {
 		}
 		return database.ref(`profiles/${currentProfileKey}/password`).set(value).then(() => value);
 	},
-	
+
 	init() {
 		this.output = document.getElementById('commandOutput');
 		this.input = document.getElementById('commandInput');
@@ -55,7 +55,7 @@ const commandConsole = {
 		const toggleBtn = document.getElementById('toggleConsoleBtn');
 		const consoleEl = document.getElementById('commandConsole');
 		const profileKeyDisplay = document.getElementById('profileKeyDisplay');
-		
+
 		// 세션에서 로그인된 프로필 키 설정
 		currentProfileKey = (typeof getSessionProfile === 'function') ? getSessionProfile() : null;
 		if (currentProfileKey) {
@@ -68,18 +68,18 @@ const commandConsole = {
 				setupRealtimeSync();
 			}
 		}
-		
+
 		// 드래그 기능 추가 (dragState를 commandConsole에 저장)
 		this.dragState = this.setupDragging(consoleEl);
-		
+
 		// 전역 ESC 키 이벤트 리스너 (비밀번호 모드 취소용)
 		document.addEventListener('keydown', (e) => {
 			if (e.key === 'Escape' || e.keyCode === 27) {
 				// 비밀번호 입력 모드에서 ESC 키를 누르면 읽기 전용 모드로 전환
-				if (this.inputMode === 'auth' || this.inputMode === 'auth-switch' || 
+				if (this.inputMode === 'auth' || this.inputMode === 'auth-switch' ||
 				    this.inputMode === 'password-change' || this.inputMode === 'delete-confirm' ||
 				    this.inputMode === 'delete-password-confirm' || this.inputMode === 'password-delete-confirm' ||
-				    this.inputMode === 'matching' || this.inputMode === 'input-data' || 
+				    this.inputMode === 'matching' || this.inputMode === 'input-data' ||
 				    this.inputMode === 'profile-switch' || this.inputMode === 'reservation') {
 					e.preventDefault();
 					e.stopPropagation();
@@ -95,7 +95,7 @@ const commandConsole = {
 				}
 			}
 		});
-		
+
 		if (this.input) {
 			this.input.addEventListener('keydown', (e) => {
 				if (e.key === 'Enter') {
@@ -104,17 +104,17 @@ const commandConsole = {
 				}
 			});
 		}
-		
+
 		if (sendBtn) {
 			sendBtn.addEventListener('click', () => this.executeCommand());
 		}
-		
+
 		// 콘솔 토글
 		if (toggleBtn) {
 			toggleBtn.addEventListener('click', () => {
 				const content = document.querySelector('.command-content');
 				const isHidden = content.style.display === 'none';
-				
+
 				if (isHidden) {
 					// 펼치기: 저장된 위치와 크기 복원
 					content.style.display = 'flex';
@@ -138,13 +138,13 @@ const commandConsole = {
 				}
 			});
 		}
-		
+
 		// 콘솔 닫기
 		const closeBtn = document.getElementById('closeConsoleBtn');
 		if (closeBtn) {
 			closeBtn.addEventListener('click', () => {
 				consoleEl.style.display = 'none';
-				
+
 				// 상태 초기화 (다시 열었을 때 프로필 입력부터 시작)
 				if (!currentProfileKey) {
 					// 파라미터가 없는 경우에만 초기화 (자동 프로필 프롬프트 비활성화)
@@ -155,7 +155,7 @@ const commandConsole = {
 					this.storedPassword = null;
 					this.tempProfile = '';
 					this.tempPassword = '';
-					
+
 					// 출력 화면 클리어
 					if (this.output) {
 						this.output.innerHTML = '';
@@ -163,17 +163,17 @@ const commandConsole = {
 				} else {
 					// 프로필이 있는 경우
 					// 비밀번호 입력 모드에서 닫으면 자동으로 읽기 모드로 전환
-					if (this.inputMode === 'auth' || this.inputMode === 'auth-switch' || 
+					if (this.inputMode === 'auth' || this.inputMode === 'auth-switch' ||
 					    this.inputMode === 'password-change' || this.inputMode === 'delete-confirm' ||
 					    this.inputMode === 'delete-password-confirm' || this.inputMode === 'password-delete-confirm' ||
 					    this.inputMode === 'password-ask-initial' || this.inputMode === 'password-ask-switch' ||
 					    this.inputMode === 'matching' || this.inputMode === 'input-data') {
 						this.log(this.comments.cancel);
 						this.inputMode = 'normal';
-						
+
 						// 확인 버튼이 표시되어 있다면 입력 필드로 복원
 						this.restoreInputField();
-						
+
 						this.input.type = 'text';
 						this.input.placeholder = this.placeholders.input;
 					} else if (this.inputMode !== 'normal') {
@@ -185,7 +185,7 @@ const commandConsole = {
 				}
 			});
 		}
-		
+
 		// 리사이즈 기능 추가
 		this.setupResizing(consoleEl);
 	},
@@ -193,7 +193,7 @@ const commandConsole = {
 	setupResizing(consoleEl) {
 		const handles = consoleEl.querySelectorAll('.resize-handle');
 		if (!handles.length) return;
-		
+
 		let isResizing = false;
 		let resizeDirection = '';
 		let startX, startY, startWidth, startHeight;
@@ -201,37 +201,37 @@ const commandConsole = {
 		let finalLeft, finalTop, finalWidth, finalHeight;
 		let originalTransform = '';
 		let originalWidth, originalHeight;
-		
+
 		handles.forEach(handle => {
 			handle.addEventListener('mousedown', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
-				
+
 				isResizing = true;
 				startX = e.clientX;
 				startY = e.clientY;
-				
+
 				originalTransform = consoleEl.style.transform || 'translate(0px, 0px)';
 				originalWidth = parseInt(consoleEl.style.width) || 450;
 				originalHeight = parseInt(consoleEl.style.height) || 350;
-				
+
 				const rect = consoleEl.getBoundingClientRect();
 				startWidth = Math.round(rect.width);
 				startHeight = Math.round(rect.height);
 				startLeft = Math.round(rect.left);
 				startTop = Math.round(rect.top);
-				
+
 				finalLeft = startLeft;
 				finalTop = startTop;
 				finalWidth = startWidth;
 				finalHeight = startHeight;
-				
+
 				consoleEl.style.bottom = 'auto';
 				consoleEl.style.right = 'auto';
 				consoleEl.style.left = `${startLeft}px`;
 				consoleEl.style.top = `${startTop}px`;
 				consoleEl.style.transform = 'none';
-				
+
 				if (handle.classList.contains('resize-n')) resizeDirection = 'n';
 				else if (handle.classList.contains('resize-s')) resizeDirection = 's';
 				else if (handle.classList.contains('resize-e')) resizeDirection = 'e';
@@ -240,22 +240,22 @@ const commandConsole = {
 				else if (handle.classList.contains('resize-nw')) resizeDirection = 'nw';
 				else if (handle.classList.contains('resize-se')) resizeDirection = 'se';
 				else if (handle.classList.contains('resize-sw')) resizeDirection = 'sw';
-				
+
 				consoleEl.style.transition = 'none';
 			});
 		});
-		
+
 		document.addEventListener('mousemove', (e) => {
 			if (!isResizing) return;
-			
+
 			const deltaX = e.clientX - startX;
 			const deltaY = e.clientY - startY;
-			
+
 			let newWidth = startWidth;
 			let newHeight = startHeight;
 			let newLeft = startLeft;
 			let newTop = startTop;
-			
+
 			if (resizeDirection.includes('e')) {
 				newWidth = Math.max(450, Math.min(startWidth + deltaX, window.innerWidth - startLeft - 20));
 			}
@@ -272,30 +272,30 @@ const commandConsole = {
 				newHeight = Math.max(350, Math.min(startHeight - deltaY, maxHeight));
 				newTop = startTop + (startHeight - newHeight);
 			}
-			
+
 			finalLeft = Math.round(newLeft) + 15;
 			finalTop = Math.round(newTop);
 			finalWidth = Math.round(newWidth);
 			finalHeight = Math.round(newHeight);
-			
+
 			consoleEl.style.width = `${newWidth}px`;
 			consoleEl.style.height = `${newHeight}px`;
 			consoleEl.style.left = `${newLeft}px`;
 			consoleEl.style.top = `${newTop}px`;
 		});
-		
+
 		document.addEventListener('mouseup', () => {
 			if (isResizing) {
 				const widthChanged = finalWidth !== originalWidth;
 				const heightChanged = finalHeight !== originalHeight;
-				
+
 				if (widthChanged || heightChanged) {
 					const baseRight = window.innerWidth - finalWidth - 20;
 					const baseBottom = window.innerHeight - finalHeight - 20;
-					
+
 					const newTransformX = finalLeft - baseRight;
 					const newTransformY = finalTop - baseBottom;
-					
+
 					consoleEl.style.width = `${finalWidth}px`;
 					consoleEl.style.height = `${finalHeight}px`;
 					consoleEl.style.left = 'auto';
@@ -303,7 +303,7 @@ const commandConsole = {
 					consoleEl.style.right = '20px';
 					consoleEl.style.bottom = '20px';
 					consoleEl.style.transform = `translate(${newTransformX}px, ${newTransformY}px)`;
-					
+
 					if (this.dragState) {
 						this.dragState.xOffset = newTransformX;
 						this.dragState.yOffset = newTransformY;
@@ -312,7 +312,7 @@ const commandConsole = {
 						this.dragState.initialX = 0;
 						this.dragState.initialY = 0;
 					}
-					
+
 					this.savedPosition.x = newTransformX;
 					this.savedPosition.y = newTransformY;
 				} else {
@@ -322,18 +322,18 @@ const commandConsole = {
 					consoleEl.style.bottom = '20px';
 					consoleEl.style.transform = originalTransform;
 				}
-				
+
 				isResizing = false;
 				resizeDirection = '';
 			}
 		});
 	},
-	
+
 	setupDragging(consoleEl) {
 		const header = consoleEl.querySelector('.command-header');
 		const content = consoleEl.querySelector('.command-content');
 		if (!header) return { xOffset: 0, yOffset: 0 };
-		
+
 		const dragState = {
 			isDragging: false,
 			currentX: 0,
@@ -343,37 +343,37 @@ const commandConsole = {
 			xOffset: 0,
 			yOffset: 0
 		};
-		
+
 		header.addEventListener('mousedown', (e) => {
 			if (e.target.closest('.toggle-console-btn')) return;
 			if (e.target.closest('.close-console-btn')) return;
 			if (content && content.style.display === 'none') return;
-			
+
 			dragState.initialX = e.clientX - dragState.xOffset;
 			dragState.initialY = e.clientY - dragState.yOffset;
 			dragState.isDragging = true;
 			consoleEl.style.transition = 'none';
 		});
-		
+
 		document.addEventListener('mousemove', (e) => {
 			if (!dragState.isDragging) return;
-			
+
 			e.preventDefault();
 			dragState.currentX = e.clientX - dragState.initialX;
 			dragState.currentY = e.clientY - dragState.initialY;
-			
+
 			const rect = consoleEl.getBoundingClientRect();
 			const maxX = window.innerWidth - rect.width - 20;
 			const maxY = window.innerHeight - rect.height - 20;
 			const minX = 20;
 			const minY = 20;
-			
+
 			dragState.xOffset = Math.max(minX - (window.innerWidth - rect.width - 20), Math.min(dragState.currentX, maxX - (window.innerWidth - rect.width - 20)));
 			dragState.yOffset = Math.max(minY - (window.innerHeight - rect.height - 20), Math.min(dragState.currentY, maxY - (window.innerHeight - rect.height - 20)));
-			
+
 			setTranslate(dragState.xOffset, dragState.yOffset, consoleEl);
 		});
-		
+
 		document.addEventListener('mouseup', () => {
 			if (dragState.isDragging) {
 				dragState.initialX = dragState.currentX;
@@ -381,45 +381,45 @@ const commandConsole = {
 				dragState.isDragging = false;
 			}
 		});
-		
+
 		function setTranslate(xPos, yPos, el) {
 			el.style.transform = `translate(${xPos}px, ${yPos}px)`;
 		}
-		
+
 		return dragState;
 	},
-	
+
 	showConfirmButtons() {
 		const container = document.querySelector('.command-input-container');
 		if (!container) return;
-		
+
 		container.innerHTML = `
 			<button id="commandConfirmBtn" class="command-confirm-btn">확인</button>
 			<button id="commandCancelBtn" class="command-cancel-btn">취소</button>
 		`;
-		
+
 		document.getElementById('commandConfirmBtn').addEventListener('click', () => {
 			this.handleConfirmResponse(true);
 		});
-		
+
 		document.getElementById('commandCancelBtn').addEventListener('click', () => {
 			this.handleConfirmResponse(false);
 		});
 	},
-	
+
 	addCancelButton() {
 		const container = document.querySelector('.command-input-container');
 		if (!container) return;
-		
+
 		// 이미 취소 버튼이 있는지 확인
 		if (document.getElementById('commandCancelBtn')) return;
-		
+
 		const cancelBtn = document.createElement('button');
 		cancelBtn.id = 'commandCancelBtn';
 		cancelBtn.className = 'command-send-btn';
 		cancelBtn.textContent = '취소';
 		cancelBtn.style.cssText = 'background: #ef4444; margin-left: 5px;';
-		
+
 		cancelBtn.addEventListener('click', () => {
 			this.log(this.comments.cancel);
 			this.inputMode = 'normal';
@@ -430,33 +430,33 @@ const commandConsole = {
 			}
 			this.removeCancelButton();
 		});
-		
+
 		container.appendChild(cancelBtn);
 	},
-	
+
 	removeCancelButton() {
 		const cancelBtn = document.getElementById('commandCancelBtn');
 		if (cancelBtn) {
 			cancelBtn.remove();
 		}
 	},
-	
+
 	showFirstTimeHelp() {
 		if (!this.firstTimeHelpShown) {
 			this.log(this.comments.help);
 			this.firstTimeHelpShown = true;
 		}
 	},
-	
+
 	restoreInputField(showCancelButton = false) {
 		const container = document.querySelector('.command-input-container');
 		if (!container) return;
-		
+
 		// 취소 버튼 제거
 		this.removeCancelButton();
 		// 프로필 입력 모드에서는 기본적으로 취소 버튼을 표시하도록 처리
 		const showCancel = showCancelButton || this.inputMode === 'profile' || this.inputMode === 'profile-switch';
-		
+
 		const placeholderText = (this.inputMode === 'profile' || this.inputMode === 'profile-switch') ? this.placeholders.profile : this.placeholders.input;
 		if (showCancel) {
 			container.innerHTML = `
@@ -470,11 +470,11 @@ const commandConsole = {
 					<button id="commandSendBtn" class="command-send-btn">전송</button>
 				`;
 		}
-		
+
 		this.input = document.getElementById('commandInput');
 		const sendBtn = document.getElementById('commandSendBtn');
 		const cancelBtn = document.getElementById('commandCancelBtn');
-		
+
 		if (this.input) {
 			this.input.addEventListener('keydown', (e) => {
 				if (e.key === 'Enter') {
@@ -485,11 +485,11 @@ const commandConsole = {
 			// 입력 폼에 포커스
 			setTimeout(() => this.input.focus(), 50);
 		}
-		
+
 		if (sendBtn) {
 			sendBtn.addEventListener('click', () => this.executeCommand());
 		}
-		
+
 		if (cancelBtn) {
 			cancelBtn.addEventListener('click', () => {
 				this.log(this.comments.cancel);
@@ -509,27 +509,27 @@ const commandConsole = {
 					setCurrentProfileSource('profiles');
 				}
 				currentProfileKey = this.tempProfile;
-				
+
 				const url = new URL(window.location);
 				url.searchParams.set('key', this.tempProfile);
 				window.history.pushState({}, '', url);
-				
+
 				const profileKeyDisplay = document.getElementById('profileKeyDisplay');
 				if (profileKeyDisplay) {
 					profileKeyDisplay.textContent = `Profile: ${this.tempProfile}`;
 					// 신규 생성 시에는 인증됨
 					profileKeyDisplay.classList.add('authenticated');
 				}
-				
+
 				this.success(`프로필 '${this.tempProfile}' 생성됨`);
-				
+
 				// 동기화 활성화
 				if (!syncEnabled) {
 					syncEnabled = true;
 					setupRealtimeSync();
 				}
 				this.log('🔄 실시간 동기화가 활성화되었습니다.');
-				
+
 				// 신규 프로필 생성 시 바로 빈 데이터로 초기화하여 동기화 시작
 				const initialData = {
 					people: state.people || [],
@@ -548,7 +548,7 @@ const commandConsole = {
 					membersPerTeam: state.membersPerTeam || 4,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				if (database && currentProfileKey) {
 					database.ref(`profiles/${currentProfileKey}`).set(initialData)
 						.then(() => {
@@ -587,13 +587,13 @@ const commandConsole = {
 					const url = new URL(window.location);
 					url.searchParams.delete('key');
 					window.history.pushState({}, '', url);
-					
+
 					const profileKeyDisplay = document.getElementById('profileKeyDisplay');
 					if (profileKeyDisplay) {
 						profileKeyDisplay.textContent = 'Profile: -';
 						profileKeyDisplay.classList.remove('authenticated');
 					}
-					
+
 					currentProfileKey = null;
 					this.tempProfile = '';
 					this.tempPassword = '';
@@ -709,17 +709,17 @@ const commandConsole = {
 			}
 		}
 	},
-	
+
 	log(message, type = 'info') {
 		if (!this.output) return;
 		const timestamp = new Date().toLocaleTimeString('ko-KR');
 		const entry = document.createElement('div');
 		entry.className = `command-log command-log-${type}`;
-		
+
 		entry.innerHTML = `<span class="log-time">[${timestamp}]</span><span class="log-content">${message}</span>`;
 		this.output.appendChild(entry);
 		this.output.scrollTop = this.output.scrollHeight;
-		
+
 		// <code> 태그에 클릭 이벤트 추가 (명령어 자동 실행)
 		entry.querySelectorAll('code[data-cmd]').forEach(code => {
 			code.style.cursor = 'pointer';
@@ -732,11 +732,11 @@ const commandConsole = {
 					this.input.type = 'text';
 					this.input.placeholder = this.placeholders.input;
 					this.removeCancelButton();
-					
+
 					// 명령어 자동 입력 및 실행
 					this.input.value = cmdText;
 					this.input.focus();
-					
+
 					// 명령어 즉시 실행
 					this.executeCommand();
 				}
@@ -755,27 +755,27 @@ const commandConsole = {
 	success(message) {
 		this.log(message, 'success');
 	},
-	
+
 	executeCommand() {
 		if (!this.input) return;
 		const cmd = this.input.value.trim();
-		
+
 		// password-change-new 모드에서는 빈 값도 처리해야 함 (비밀번호 삭제 기능)
 		if (!cmd && this.inputMode !== 'password-change-new') return;
-		
+
 		// 비밀번호 관련 입력 모드에서는 로그 출력하지 않음
-		if (this.inputMode !== 'auth' && 
-		    this.inputMode !== 'auth-switch' && 
-		    this.inputMode !== 'password' && 
-		    this.inputMode !== 'password-confirm' && 
-		    this.inputMode !== 'password-change' && 
-		    this.inputMode !== 'password-change-confirm' && 
+		if (this.inputMode !== 'auth' &&
+		    this.inputMode !== 'auth-switch' &&
+		    this.inputMode !== 'password' &&
+		    this.inputMode !== 'password-confirm' &&
+		    this.inputMode !== 'password-change' &&
+		    this.inputMode !== 'password-change-confirm' &&
 		    this.inputMode !== 'delete-password-confirm' &&
 		    this.inputMode !== 'matching') {
 			this.log(`> ${cmd}`, 'command');
 		}
 		this.input.value = '';
-		
+
 		if (this.inputMode === 'reservation') {
 			// 예약 모드: 예약 명령어 처리
 			// 예약 등록 처리
@@ -791,46 +791,46 @@ const commandConsole = {
 			} catch (error) {
 				this.error(commandConsoleMessages.comments.reservationAddFailed.replace('{error}', error.message));
 			}
-			
+
 			// 예약 모드 유지 (취소 또는 ESC로만 종료 가능)
 			this.input.placeholder = this.placeholders.reservation;
 			setTimeout(() => this.input.focus(), 50);
 			return;
 		}
-		
+
 		if (this.inputMode === 'matching') {
 			// 규칙 모드: 히든 그룹 명령어 처리
 			this.log(`> ${cmd}`, 'command');
-			
+
 			// 규칙 제거 명령어 체크
 			const isRemoveCommand = /^([^()!]+)\(!\)/.test(cmd) || /^([^()!,]+)!/.test(cmd);
-			
+
 			// input 명령어를 통해 처리
 			this.inputCommand(cmd);
 			saveToLocalStorage();
-			
+
 			// 결과 메시지 출력
 			if (isRemoveCommand) {
 				this.success('✅ 규칙 제거 완료');
 			} else {
 				this.success('✅ 규칙 추가 완료');
 			}
-			
+
 			// 확인하기 안내
 			this.log('확인하기 (명령어: <code data-cmd="확률">확률</code>)');
-			
+
 			// 규칙 모드 유지 (취소 또는 ESC로만 종료 가능)
 			this.input.placeholder = this.placeholders.ruleInput;
 			setTimeout(() => this.input.focus(), 50);
 			return;
 		}
-		
+
 		if (this.inputMode === 'profile' || this.inputMode === 'profile-switch') {
 			if (!database && !initFirebase()) {
 				this.error(this.comments.firebaseInitFailed + '.');
 				return;
 			}
-			
+
 			// 현재 프로필과 동일한 이름을 입력한 경우
 			if (cmd === currentProfileKey) {
 				this.log(this.comments.profileKeepCurrent);
@@ -839,7 +839,7 @@ const commandConsole = {
 				this.input.placeholder = this.placeholders.input;
 				return;
 			}
-			
+
 			// 프로필 전체 데이터 확인 (profiles + users)
 			Promise.all([
 				database.ref(`profiles/${cmd}`).once('value'),
@@ -851,7 +851,7 @@ const commandConsole = {
 				const isUsersSource = source === 'users';
 				const profileData = profileNodeData !== null ? profileNodeData : userData;
 				const isProfileSwitch = this.inputMode === 'profile-switch';
-				
+
 				// 프로필이 존재하는지 확인 (password 또는 다른 데이터가 있으면 존재)
 				if (profileData !== null) {
 					if (typeof setCurrentProfileSource === 'function') {
@@ -863,11 +863,11 @@ const commandConsole = {
 					this.storedPassword = isUsersSource ? '' : password;
 					this.authenticated = isUsersSource;
 					authenticatedPassword = isUsersSource ? 'users-auto-auth' : ''; // 프로필 전환 시 인증 초기화
-					
+
 					const url = new URL(window.location);
 					url.searchParams.set('key', cmd);
 					window.history.pushState({}, '', url);
-					
+
 					const profileKeyDisplay = document.getElementById('profileKeyDisplay');
 					if (profileKeyDisplay) {
 						profileKeyDisplay.textContent = `Profile: ${cmd}`;
@@ -878,7 +878,7 @@ const commandConsole = {
 							profileKeyDisplay.classList.remove('authenticated');
 						}
 					}
-					
+
 					if (isProfileSwitch) {
 						// 프로필 전환 모드: 비밀번호 없으면 바로 전환, 있으면 인증 요청
 						if (isUsersSource || password === '') {
@@ -887,12 +887,12 @@ const commandConsole = {
 							this.inputMode = 'normal';
 							this.input.type = 'text';
 							this.input.placeholder = this.placeholders.input;
-							
+
 							if (!syncEnabled) {
 								syncEnabled = true;
 								setupRealtimeSync();
 							}
-							
+
 							// 데이터 로드 및 자동 동기화 설정
 							database.ref(`profiles/${currentProfileKey}`).once('value')
 								.then((snapshot) => {
@@ -918,7 +918,7 @@ const commandConsole = {
 								syncEnabled = true;
 								setupRealtimeSync();
 							}
-							
+
 							// 데이터 먼저 로드
 							database.ref(`profiles/${currentProfileKey}`).once('value')
 								.then((snapshot) => {
@@ -948,7 +948,7 @@ const commandConsole = {
 							syncEnabled = true;
 							setupRealtimeSync();
 						}
-						
+
 						// 데이터 먼저 로드
 						database.ref(`profiles/${currentProfileKey}`).once('value')
 							.then((snapshot) => {
@@ -998,10 +998,10 @@ const commandConsole = {
 			});
 			return;
 		}
-		
+
 		if (this.inputMode === 'auth' || this.inputMode === 'auth-switch') {
 			const isSwitch = this.inputMode === 'auth-switch';
-			
+
 			if (cmd === this.storedPassword) {
 				this.authenticated = true;
 				authenticatedPassword = cmd; // 인증된 비밀번호 저장
@@ -1009,19 +1009,19 @@ const commandConsole = {
 				this.input.type = 'text';
 				this.input.placeholder = this.placeholders.input;
 				this.removeCancelButton();
-				
+
 				// 프로필 배경색 업데이트
 				const profileKeyDisplay = document.getElementById('profileKeyDisplay');
 				if (profileKeyDisplay) {
 					profileKeyDisplay.classList.add('authenticated');
 				}
-				
+
 				// 동기화가 비활성화되어 있으면 활성화
 				if (!syncEnabled) {
 					syncEnabled = true;
 					setupRealtimeSync();
 				}
-				
+
 				// 프로필 전환 모드든 초기 접속 모드든 데이터 로드
 				database.ref(`profiles/${currentProfileKey}`).once('value')
 					.then((snapshot) => {
@@ -1052,7 +1052,7 @@ const commandConsole = {
 			}
 			return;
 		}
-		
+
 		if (this.inputMode === 'password') {
 		// 첫 번째 비밀번호 입력
 		this.tempPassword = cmd;
@@ -1063,7 +1063,7 @@ const commandConsole = {
 		// 취소 버튼 유지 (이미 있음)
 		return;
 	}
-	
+
 	if (this.inputMode === 'password-confirm') {
 		// 두 번째 비밀번호 입력 및 확인
 		if (cmd === this.tempPassword) {
@@ -1093,7 +1093,7 @@ const commandConsole = {
 		}
 		return;
 	}
-		
+
 	if (this.inputMode === 'password-change') {
 		// 1단계: 현재 비밀번호 확인
 		if (cmd === this.storedPassword) {
@@ -1113,7 +1113,7 @@ const commandConsole = {
 		}
 		return;
 	}
-	
+
 	if (this.inputMode === 'password-change-new') {
 		// 2단계: 새 비밀번호 입력
 		if (!cmd || cmd.trim() === '') {
@@ -1130,7 +1130,7 @@ const commandConsole = {
 		setTimeout(() => this.input.focus(), 50);
 		return;
 	}
-	
+
 	if (this.inputMode === 'password-change-confirm') {
 		// 3단계: 새 비밀번호 확인
 		if (cmd === this.tempPassword) {
@@ -1156,7 +1156,7 @@ const commandConsole = {
 		}
 		return;
 	}
-	
+
 	if (this.inputMode === 'input-data') {
 		// 참가자 데이터 입력 완료
 		if (typeof addPerson === 'function' && elements.nameInput) {
@@ -1166,7 +1166,7 @@ const commandConsole = {
 		} else {
 			this.error(this.comments.participantAddDisabled);
 		}
-		
+
 		// 입력 모드 유지 (취소 또는 ESC로만 종료 가능)
 		this.input.placeholder = this.placeholders.inputData;
 		setTimeout(() => this.input.focus(), 50);
@@ -1191,7 +1191,7 @@ const commandConsole = {
 		}
 		return;
 	}
-		
+
 	if (this.inputMode === 'delete-final-confirm') {
 		// 최종 확인: 프로필 이름 일치 확인
 		if (cmd === currentProfileKey) {
@@ -1200,12 +1200,12 @@ const commandConsole = {
 				.then(() => {
 					this.success(`✅ ${this.comments.profileDeleted.replace('프로필이', `프로필 '${currentProfileKey}'가`).replace('삭제되었습니다', '완전히 삭제되었습니다')}`);
 					this.log(this.comments.deleteRedirect);
-					
+
 					// 로컬 상태 초기화
 					clearState();
 					currentProfileKey = null;
 					syncEnabled = false;
-					
+
 					// 2초 후 index.html로 리다이렉트
 					setTimeout(() => {
 						window.location.href = 'index.html';
@@ -1223,7 +1223,7 @@ const commandConsole = {
 		}
 		return;
 	}
-		
+
 	if (currentProfileKey && typeof getCurrentProfileSource === 'function' && getCurrentProfileSource() === 'users' && !this.authenticated) {
 		this.authenticated = true;
 		this.storedPassword = '';
@@ -1242,9 +1242,9 @@ const commandConsole = {
 			return;
 		}
 	}
-		
+
 	const [command, ...args] = cmd.split(' ');
-		
+
 		switch (command.toLowerCase()) {
 			case 'save':
 			case '저장':
@@ -1293,7 +1293,7 @@ const commandConsole = {
 			case 'people':
 				this.nonParticipantsCommand();
 				break;
-			case '제약':
+			case '분리':
 				this.constraintsCommand();
 				break;
 			case '히든':
@@ -1355,15 +1355,15 @@ const commandConsole = {
 					}
 				});
 		};
-	
+
 		// 저장은 Firebase에 업로드만 하고 다른 창에 알림을 보내지 않음
 		if (typeof window !== 'undefined') {
 			window.lastReservationChangeByMe = true;
 		}
-		
+
 		ensureProfileSourceForSave()
 		.then(() => {
-			
+
 			const data = {
 				people: state.people,
 				inactivePeople: state.inactivePeople,
@@ -1383,12 +1383,12 @@ const commandConsole = {
 				membersPerTeam: state.membersPerTeam,
 				timestamp: getCurrentDbTimestamp()
 			};
-				
+
 			return database.ref(`profiles/${currentProfileKey}`).set(data);
 		})
 		.then(() => {
 			this.success(this.comments.saveComplete);
-		
+
 		// 플래그 해제 (약간의 지연 후)
 		setTimeout(() => {
 			if (typeof window !== 'undefined') {
@@ -1398,7 +1398,7 @@ const commandConsole = {
 	})
 	.catch((error) => {
 		this.error(`저장 실패: ${error.message}`);
-		
+
 		// 에러 시에도 플래그 해제
 		if (typeof window !== 'undefined') {
 			window.lastReservationChangeByMe = false;
@@ -1425,7 +1425,7 @@ loadCommand(profileName = '') {
 					return result;
 				});
 		};
-		
+
 		if (!targetProfile) {
 			ensureSource(currentProfileKey)
 				.then(() => database.ref(`profiles/${currentProfileKey}`).once('value'))
@@ -1443,7 +1443,7 @@ loadCommand(profileName = '') {
 				});
 			return;
 		}
-		
+
 		// 다른 프로필 데이터 가져와 현재 프로필에 로컬 반영 (저장/동기화 없음)
 		ensureSource(targetProfile)
 			.then((result) => {
@@ -1452,7 +1452,7 @@ loadCommand(profileName = '') {
 					return;
 				}
 				const data = result.data;
-				
+
 				const importedData = {
 					people: data.people || [],
 					inactivePeople: data.inactivePeople || [],
@@ -1471,7 +1471,7 @@ loadCommand(profileName = '') {
 					weightBalanceEnabled: data.weightBalanceEnabled || false,
 					membersPerTeam: data.membersPerTeam || 4
 				};
-				
+
 				loadStateFromData(importedData);
 				saveToLocalStorage();
 				tryResolvePendingConstraints();
@@ -1482,23 +1482,23 @@ loadCommand(profileName = '') {
 				this.error(`로드 실패: ${error.message}`);
 			});
 	},
-	
+
 	syncCommand(args) {
 		if (!syncEnabled || !currentProfileKey) {
 			this.error(this.comments.firebaseMissing);
 			return;
 		}
-		
+
 		// 인증 체크
 		if (!this.hasWriteAccess()) {
 			this.error(this.comments.readOnlyFeatureDisabled);
 			this.log(this.comments.authenticationRequired);
 			return;
 		}
-		
+
 		// 세분화된 동기화 옵션 처리
 		const option = args.toLowerCase().trim();
-		
+
 		// 옵션이 있는 경우
 		if (option) {
 			switch (option) {
@@ -1520,7 +1520,7 @@ loadCommand(profileName = '') {
 					this.syncPeopleCommand();
 					return;
 				case 'constraint':
-				case '제약':
+				case '분리':
 					this.syncConstraintCommand();
 					return;
 				case 'reservation':
@@ -1529,7 +1529,7 @@ loadCommand(profileName = '') {
 					return;
 				default:
 					// 잘못된 옵션
-					this.error(`❌ 알 수 없는 동기화 옵션: "${args}"<br>사용 가능한 옵션: 규칙, 확률, 옵션, 참가자, 미참가자, 제약, 예약`);
+					this.error(`❌ 알 수 없는 동기화 옵션: "${args}"<br>사용 가능한 옵션: 규칙, 확률, 옵션, 참가자, 미참가자, 분리, 예약`);
 					return;
 			}
 		} else {
@@ -1538,7 +1538,7 @@ loadCommand(profileName = '') {
 			return;
 		}
 	},
-	
+
 	// 전체 동기화 (기존 sync 명령어)
 	syncAllCommand() {
 		// 인증 체크
@@ -1547,12 +1547,12 @@ loadCommand(profileName = '') {
 			this.log(this.comments.authenticationRequired);
 			return;
 		}
-		
+
 		// 전체 동기화 시에도 예약 알림을 보내지 않음 (syncTrigger로 전체 동기화 알림만 표시)
 		if (typeof window !== 'undefined') {
 			window.lastReservationChangeByMe = true;
 		}
-		
+
 		// 먼저 현재 상태를 저장
 		Promise.resolve()
 			.then(() => {
@@ -1575,7 +1575,7 @@ loadCommand(profileName = '') {
 					membersPerTeam: state.membersPerTeam,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				return database.ref(`profiles/${currentProfileKey}`).set(data);
 			})
 			.then(() => {
@@ -1586,7 +1586,7 @@ loadCommand(profileName = '') {
 				if (typeof lastSyncTrigger !== 'undefined') {
 					lastSyncTrigger = syncTrigger;
 				}
-				
+
 				return database.ref(`profiles/${currentProfileKey}/syncTrigger`).set(syncTrigger);
 			})
 			.then(() => {
@@ -1598,7 +1598,7 @@ loadCommand(profileName = '') {
 					if (data) {
 						loadStateFromData(data);
 						this.success(`✅ 동기화 및 저장 완료`);
-				
+
 				// 플래그 해제 (약간의 지연 후)
 				setTimeout(() => {
 					if (typeof window !== 'undefined') {
@@ -1607,7 +1607,7 @@ loadCommand(profileName = '') {
 				}, 100);
 			} else {
 				this.warn(this.comments.noSavedData + '.');
-				
+
 				// 플래그 해제
 				if (typeof window !== 'undefined') {
 					window.lastReservationChangeByMe = false;
@@ -1616,14 +1616,14 @@ loadCommand(profileName = '') {
 		})
 			.catch((error) => {
 				this.error(`❌ 동기화 실패: ${error.message}`);
-				
+
 				// 에러 시에도 플래그 해제
 				if (typeof window !== 'undefined') {
 					window.lastReservationChangeByMe = false;
 				}
 			});
 	},
-	
+
 	// 규칙만 동기화
 	syncRuleCommand() {
 		// 인증 체크
@@ -1631,11 +1631,11 @@ loadCommand(profileName = '') {
 			this.error('❌ 인증이 필요합니다. <code data-cmd="login">login</code> 또는 <code data-cmd="로그인">로그인</code> 명령어로 먼저 로그인하세요.');
 			return;
 		}
-		
+
 		database.ref(`profiles/${currentProfileKey}`).once('value')
 			.then((snapshot) => {
 				const existingData = snapshot.val() || {};
-				
+
 				// 규칙 관련 데이터만 업데이트
 				const updates = {
 					hiddenGroups: state.hiddenGroups,
@@ -1645,7 +1645,7 @@ loadCommand(profileName = '') {
 					probabilisticForbiddenPairs: state.probabilisticForbiddenPairs,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				return database.ref(`profiles/${currentProfileKey}`).update(updates);
 			})
 			.then(() => {
@@ -1673,7 +1673,7 @@ loadCommand(profileName = '') {
 				state.pendingHiddenGroupChains = pendingHiddenGroupChainsSnap.val() || [];
 				state.probabilisticForbiddenPairs = probabilisticForbiddenPairsSnap.val() || [];
 				state.activeProbabilisticForbiddenPairs = [];
-				
+
 				// UI 업데이트는 필요 없음 (규칙은 UI에 직접 표시되지 않음)
 				this.success(`✅ 동기화 및 저장 완료`);
 			})
@@ -1681,7 +1681,7 @@ loadCommand(profileName = '') {
 				this.error(`❌ 규칙 동기화 실패: ${error.message}`);
 			});
 	},
-	
+
 	// 옵션만 동기화
 	syncOptionCommand() {
 		// 인증 체크
@@ -1689,11 +1689,11 @@ loadCommand(profileName = '') {
 			this.error('❌ 인증이 필요합니다. <code data-cmd="login">login</code> 또는 <code data-cmd="로그인">로그인</code> 명령어로 먼저 로그인하세요.');
 			return;
 		}
-		
+
 		database.ref(`profiles/${currentProfileKey}`).once('value')
 			.then((snapshot) => {
 				const existingData = snapshot.val() || {};
-				
+
 				// 옵션 관련 데이터만 업데이트
 				const updates = {
 					maxTeamSizeEnabled: state.maxTeamSizeEnabled,
@@ -1702,7 +1702,7 @@ loadCommand(profileName = '') {
 					membersPerTeam: state.membersPerTeam,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				return database.ref(`profiles/${currentProfileKey}`).update(updates);
 			})
 			.then(() => {
@@ -1727,33 +1727,33 @@ loadCommand(profileName = '') {
 				state.genderBalanceEnabled = genderBalanceSnap.val() || false;
 				state.weightBalanceEnabled = weightBalanceSnap.val() || false;
 				state.membersPerTeam = membersPerTeamSnap.val() || 4;
-				
+
 				// UI 업데이트
 				if (elements.maxTeamSizeCheckbox) elements.maxTeamSizeCheckbox.checked = state.maxTeamSizeEnabled;
 				if (elements.genderBalanceCheckbox) elements.genderBalanceCheckbox.checked = state.genderBalanceEnabled;
 				if (elements.weightBalanceCheckbox) elements.weightBalanceCheckbox.checked = state.weightBalanceEnabled;
 				if (elements.teamSizeInput) elements.teamSizeInput.value = state.membersPerTeam;
-				
+
 				this.success(`✅ 동기화 및 저장 완료`);
 			})
 			.catch((error) => {
 				this.error(`❌ 옵션 동기화 실패: ${error.message}`);
 			});
 	},
-	
+
 	// 참가자만 동기화
 	syncMemberCommand() {
 		database.ref(`profiles/${currentProfileKey}`).once('value')
 			.then((snapshot) => {
 				const existingData = snapshot.val() || {};
-				
+
 				// 참가자 관련 데이터만 업데이트
 				const updates = {
 					people: state.people,
 					nextId: state.nextId,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				return database.ref(`profiles/${currentProfileKey}`).update(updates);
 			})
 			.then(() => {
@@ -1774,30 +1774,30 @@ loadCommand(profileName = '') {
 				// 참가자 데이터만 state에 반영
 				state.people = peopleSnap.val() || [];
 				state.nextId = nextIdSnap.val() || 1;
-				
+
 				// 금지 맵 재구성 및 UI 업데이트
 				buildForbiddenMap();
 				renderPeople();
-				
+
 				this.success(`✅ 동기화 및 저장 완료`);
 			})
 			.catch((error) => {
 				this.error(`❌ 참가자 동기화 실패: ${error.message}`);
 			});
 	},
-	
+
 	// 미참가자만 동기화
 	syncPeopleCommand() {
 		database.ref(`profiles/${currentProfileKey}`).once('value')
 			.then((snapshot) => {
 				const existingData = snapshot.val() || {};
-				
+
 				// 미참가자 관련 데이터만 업데이트
 				const updates = {
 					inactivePeople: state.inactivePeople,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				return database.ref(`profiles/${currentProfileKey}`).update(updates);
 			})
 			.then(() => {
@@ -1814,31 +1814,31 @@ loadCommand(profileName = '') {
 			.then((snapshot) => {
 				// 미참가자 데이터만 state에 반영
 				state.inactivePeople = snapshot.val() || [];
-				
+
 				// UI 업데이트
 				renderPeople();
-				
+
 				this.success(`✅ 동기화 및 저장 완료`);
 			})
 			.catch((error) => {
 				this.error(`❌ 미참가자 동기화 실패: ${error.message}`);
 			});
 	},
-	
-	// 제약만 동기화
+
+	// 분리만 동기화
 	syncConstraintCommand() {
 		database.ref(`profiles/${currentProfileKey}`).once('value')
 			.then((snapshot) => {
 				const existingData = snapshot.val() || {};
-				
-				// 제약 관련 데이터만 업데이트
+
+				// 분리 관련 데이터만 업데이트
 				const updates = {
 					requiredGroups: state.requiredGroups,
 					forbiddenPairs: state.forbiddenPairs,
 					pendingConstraints: state.pendingConstraints,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				return database.ref(`profiles/${currentProfileKey}`).update(updates);
 			})
 			.then(() => {
@@ -1849,7 +1849,7 @@ loadCommand(profileName = '') {
 				return database.ref(`profiles/${currentProfileKey}/syncTrigger`).set(syncTrigger);
 			})
 			.then(() => {
-				// 제약 데이터만 다시 로드
+				// 분리 데이터만 다시 로드
 				return Promise.all([
 					database.ref(`profiles/${currentProfileKey}/requiredGroups`).once('value'),
 					database.ref(`profiles/${currentProfileKey}/forbiddenPairs`).once('value'),
@@ -1857,22 +1857,22 @@ loadCommand(profileName = '') {
 				]);
 			})
 			.then(([requiredGroupsSnap, forbiddenPairsSnap, pendingConstraintsSnap]) => {
-				// 제약 데이터만 state에 반영
+				// 분리 데이터만 state에 반영
 				state.requiredGroups = requiredGroupsSnap.val() || [];
 				state.forbiddenPairs = forbiddenPairsSnap.val() || [];
 				state.pendingConstraints = pendingConstraintsSnap.val() || [];
-				
+
 				// 금지 맵 재구성 및 UI 업데이트
 				buildForbiddenMap();
 				renderPeople();
-				
+
 				this.success(`✅ 동기화 및 저장 완료`);
 			})
 			.catch((error) => {
-				this.error(`❌ 제약 동기화 실패: ${error.message}`);
+				this.error(`❌ 분리 동기화 실패: ${error.message}`);
 			});
 	},
-	
+
 	syncReservationCommand() {
 		// 인증 체크
 		if (!this.hasWriteAccess()) {
@@ -1880,17 +1880,17 @@ loadCommand(profileName = '') {
 			this.log(this.comments.authenticationRequired);
 			return;
 		}
-		
+
 		database.ref(`profiles/${currentProfileKey}`).once('value')
 			.then((snapshot) => {
 				const existingData = snapshot.val() || {};
-				
+
 				// 예약 데이터만 업데이트
 				const updates = {
 					reservations: state.reservations,
 					timestamp: getCurrentDbTimestamp()
 				};
-				
+
 				return database.ref(`profiles/${currentProfileKey}`).update(updates);
 			})
 			.then(() => {
@@ -1907,30 +1907,30 @@ loadCommand(profileName = '') {
 			.then((snapshot) => {
 				// 예약 데이터만 state에 반영
 				state.reservations = snapshot.val() || [];
-				
+
 				this.success(`✅ 동기화 및 저장 완료`);
 			})
 			.catch((error) => {
 				this.error(`❌ 예약 동기화 실패: ${error.message}`);
 			});
 	},
-	
+
 	clearCommand(args = '') {
 		if (!syncEnabled || !currentProfileKey) {
 			this.error(this.comments.firebaseMissing);
 			return;
 		}
-		
+
 		const trimmedArgs = (args || '').trim();
-		
+
 		if (!trimmedArgs) {
 			if (!confirm(this.comments.clearConfirmMessage)) return;
-			
+
 			// 초기화도 Firebase 업로드만 하고 다른 창에 알림을 보내지 않음
 			if (typeof window !== 'undefined') {
 				window.lastReservationChangeByMe = true;
 			}
-			
+
 			// 초기화된 데이터 저장
 			Promise.resolve()
 				.then(() => {
@@ -1973,10 +1973,10 @@ loadCommand(profileName = '') {
 				});
 			return;
 		}
-		
+
 		const tokens = trimmedArgs.split(/[\s,]+/).map(t => t.trim()).filter(Boolean);
 		const targets = new Set();
-		
+
 		const addTarget = (name) => targets.add(name);
 		tokens.forEach((token) => {
 			switch (token.toLowerCase()) {
@@ -1989,7 +1989,7 @@ loadCommand(profileName = '') {
 				case 'people':
 					addTarget('inactive');
 					break;
-				case '제약':
+				case '분리':
 				case 'constraint':
 					addTarget('constraints');
 					break;
@@ -2011,16 +2011,16 @@ loadCommand(profileName = '') {
 					break;
 			}
 		});
-		
+
 		if (targets.size === 0) {
-			this.error('❌ 알 수 없는 초기화 대상입니다. 사용 가능한 대상: 참가자, 미참가자, 제약, 옵션, 확률, 규칙, 예약');
+			this.error('❌ 알 수 없는 초기화 대상입니다. 사용 가능한 대상: 참가자, 미참가자, 분리, 옵션, 확률, 규칙, 예약');
 			return;
 		}
-		
+
 		const labelMap = {
 			participants: '참가자',
 			inactive: '미참가자',
-			constraints: '제약',
+			constraints: '분리',
 			options: '옵션',
 			rules: '규칙/확률',
 			reservations: '예약'
@@ -2029,9 +2029,9 @@ loadCommand(profileName = '') {
 		if (!confirm(`⚠️ 선택 초기화를 진행합니다: ${targetLabels}\n진행하시겠습니까?`)) {
 			return;
 		}
-		
+
 		const updateData = { timestamp: getCurrentDbTimestamp() };
-		
+
 		if (targets.has('participants')) {
 			state.people = [];
 			state.nextId = 1;
@@ -2083,17 +2083,17 @@ loadCommand(profileName = '') {
 			if (elements.weightBalanceCheckbox) elements.weightBalanceCheckbox.checked = false;
 			if (elements.teamSizeInput) elements.teamSizeInput.value = 4;
 		}
-		
+
 		buildForbiddenMap();
 		renderPeople();
 		saveToLocalStorage();
 		tryResolvePendingConstraints();
 		tryResolveHiddenGroups();
-		
+
 		if (typeof window !== 'undefined') {
 			window.lastReservationChangeByMe = true;
 		}
-		
+
 		database.ref(`profiles/${currentProfileKey}`).update(updateData)
 			.then(() => {
 				this.success('🗑️ 선택한 항목이 초기화되었습니다.');
@@ -2121,14 +2121,14 @@ loadCommand(profileName = '') {
 			`Firebase: ${syncEnabled ? '활성화' : '비활성화'}`,
 			`참가자: ${state.people.length}명 <code data-cmd="참가자">참가자</code>`,
 			`미참가자: ${state.inactivePeople.length}명 <code data-cmd="미참가자">미참가자</code>`,
-			`제약: ${state.forbiddenPairs.length}개 <code data-cmd="제약">제약</code>`
+			`분리: ${state.forbiddenPairs.length}개 <code data-cmd="분리">분리</code>`
 		];
-		
+
 		if (this.authenticated) {
 			statusLines.push(`규칙: ${ruleCount}개 <code data-cmd="확률">확률</code>`);
 			statusLines.push(`예약: ${reservationCount}개 <code data-cmd="예약 목록">예약 목록</code>`);
 		}
-		
+
 		this.log(statusLines.join('<br>'));
 	},
 
@@ -2142,7 +2142,7 @@ loadCommand(profileName = '') {
 	},
 
 	passwordCommand(newPassword) {
-	
+
 		// 현재 비밀번호가 없는지 확인
 		if (!this.storedPassword || this.storedPassword === '') {
 			// 비밀번호가 없으면 바로 새 비밀번호 입력 모드로
@@ -2154,7 +2154,7 @@ loadCommand(profileName = '') {
 			setTimeout(() => this.input.focus(), 50);
 			return;
 		}
-		
+
 		// 인자가 제공된 경우 - 비밀번호 변경 플로우 시작
 		if (newPassword && newPassword.trim()) {
 			this.warn(this.comments.passwordChangeInteractive);
@@ -2174,7 +2174,7 @@ loadCommand(profileName = '') {
 			setTimeout(() => this.input.focus(), 50);
 		}
 	},
-	
+
 	loginCommand() {
 		if (!currentProfileKey) {
 			this.error('⚠️ 현재 프로필이 없어서 실행할 수 없습니다. 먼저 프로필을 선택하세요.');
@@ -2195,12 +2195,12 @@ loadCommand(profileName = '') {
 			this.error(this.comments.firebaseMissing);
 			return;
 		}
-		
+
 		if (this.authenticated) {
 			this.log(this.comments.loginSuccess);
 			return;
 		}
-		
+
 		// 비밀번호 입력 모드로 전환
 		this.log('🔒 비밀번호를 입력하세요:');
 		this.inputMode = 'auth';
@@ -2209,7 +2209,7 @@ loadCommand(profileName = '') {
 		this.addCancelButton();
 		setTimeout(() => this.input.focus(), 50);
 	},
-	
+
 	logoutCommand() {
 		if (!currentProfileKey) {
 			this.error('⚠️ 현재 프로필이 없어서 실행할 수 없습니다. 먼저 프로필을 선택하세요.');
@@ -2230,32 +2230,32 @@ loadCommand(profileName = '') {
 			this.error(this.comments.firebaseMissing);
 			return;
 		}
-		
+
 		if (!this.authenticated) {
 			this.log(this.comments.readonlyMode);
 			return;
 		}
-		
+
 		// 쓰기 모드에서 읽기 모드로 전환
 		this.authenticated = false;
 		authenticatedPassword = ''; // 인증 해제
-		
+
 		// 프로필 배경색 업데이트
 		const profileKeyDisplay = document.getElementById('profileKeyDisplay');
 		if (profileKeyDisplay) {
 			profileKeyDisplay.classList.remove('authenticated');
 		}
-		
+
 		this.success(this.comments.logoutSuccess);
 		this.log(this.comments.loginInstructions);
 	},
-	
+
 	profileCommand() {
 		if (!database && !initFirebase()) {
 			this.error(this.comments.firebaseInitFailed + '.');
 			return;
 		}
-		
+
 		// 프로필 전환 모드로 진입
 		this.log(this.comments.profileSwitch);
 		this.inputMode = 'profile-switch';
@@ -2264,13 +2264,13 @@ loadCommand(profileName = '') {
 		this.addCancelButton();
 		setTimeout(() => this.input.focus(), 50);
 	},
-	
+
 	participantsCommand() {
 		if (state.people.length === 0) {
 			this.log(this.comments.noParticipants + '.');
 			return;
 		}
-		
+
 		let output = `<div style="margin: 10px 0;">
 			<div style="font-weight: bold; margin-bottom: 8px;">=== 📋 참가자 목록 (${state.people.length}명) ===</div>
 			<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
@@ -2284,7 +2284,7 @@ loadCommand(profileName = '') {
 					</tr>
 				</thead>
 				<tbody>`;
-		
+
 		state.people.forEach((person, index) => {
 			const genderIcon = person.gender === 'male' ? '♂️' : person.gender === 'female' ? '♀️' : '?';
 			const weight = person.weight || 0;
@@ -2300,9 +2300,9 @@ loadCommand(profileName = '') {
 				})
 				.filter(g => g)
 				.join(', ');
-			
+
 			const groupDisplay = groups ? `'${groups}'` : '';
-			
+
 			output += `
 				<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
 					<td style="padding: 6px; text-align: center; color: #94a3b8;">${index}</td>
@@ -2312,21 +2312,21 @@ loadCommand(profileName = '') {
 					<td style="padding: 6px; color: #6ee7b7;">${groupDisplay}</td>
 				</tr>`;
 		});
-		
+
 		output += `
 				</tbody>
 			</table>
 		</div>`;
-		
+
 		this.log(output);
 	},
-	
+
 	nonParticipantsCommand() {
 		if (state.inactivePeople.length === 0) {
 			this.log(this.comments.noInactiveParticipants + '.');
 			return;
 		}
-		
+
 		let output = `<div style="margin: 10px 0;">
 			<div style="font-weight: bold; margin-bottom: 8px;">=== 🚫 미참가자 목록 (${state.inactivePeople.length}명) ===</div>
 			<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
@@ -2339,11 +2339,11 @@ loadCommand(profileName = '') {
 					</tr>
 				</thead>
 				<tbody>`;
-		
+
 		state.inactivePeople.forEach((person, index) => {
 			const genderIcon = person.gender === 'male' ? '♂️' : person.gender === 'female' ? '♀️' : '?';
 			const weight = person.weight || 0;
-			
+
 			output += `
 				<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
 					<td style="padding: 6px; text-align: center; color: #94a3b8;">${index}</td>
@@ -2352,28 +2352,28 @@ loadCommand(profileName = '') {
 					<td style="padding: 6px; text-align: center; color: ${weight > 0 ? '#a78bfa' : '#94a3b8'};">${weight}</td>
 				</tr>`;
 		});
-		
+
 		output += `
 				</tbody>
 			</table>
 		</div>`;
-		
+
 		this.log(output);
 	},
-	
+
 	constraintsCommand() {
 		const totalConstraints = state.forbiddenPairs.length + state.pendingConstraints.length;
-		
+
 		if (totalConstraints === 0) {
 			this.log(this.comments.noConstraints);
 			return;
 		}
-		
-		let output = `=== ⚠️ 제약 조건 (${totalConstraints}개) ===<br><br>`;
-		
-		// 활성 제약 (forbiddenPairs)
+
+		let output = `=== ⚠️ 분리 조건 (${totalConstraints}개) ===<br><br>`;
+
+		// 활성 분리 (forbiddenPairs)
 		if (state.forbiddenPairs.length > 0) {
-			output += `<strong>⚠️ 활성 제약 (${state.forbiddenPairs.length}개):</strong><br>`;
+			output += `<strong>⚠️ 활성 분리 (${state.forbiddenPairs.length}개):</strong><br>`;
 			state.forbiddenPairs.forEach((pair, index) => {
 				const personA = state.people.find(p => p.id === pair[0]);
 				const personB = state.people.find(p => p.id === pair[1]);
@@ -2383,47 +2383,47 @@ loadCommand(profileName = '') {
 			});
 			output += '<br>';
 		}
-		
-		// 보류 제약 (pendingConstraints)
+
+		// 보류 분리 (pendingConstraints)
 		if (state.pendingConstraints.length > 0) {
-			output += `<strong>? 보류 제약 (${state.pendingConstraints.length}개):</strong><br>`;
+			output += `<strong>? 보류 분리 (${state.pendingConstraints.length}개):</strong><br>`;
 			state.pendingConstraints.forEach((constraint, index) => {
 				output += `${index + 1}. ${constraint.left} ⛔ ${constraint.right}<br>`;
 			});
 		}
-		
+
 		this.log(output);
 	},
-	
+
 	matchingCommand(ruleInput) {
 		if (!this.hasWriteAccess()) {
 			this.error(this.comments.ruleReadOnlyError);
 			this.log(this.comments.authenticationRequired);
 			return;
 		}
-		
+
 		// 인자가 있으면 바로 규칙 등록
 		if (ruleInput && ruleInput.trim()) {
 			this.log(`> ${ruleInput}`, 'command');
-			
+
 			// 규칙 제거 명령어 체크
 			const isRemoveCommand = /^([^()!]+)\(!\)/.test(ruleInput);
-			
+
 			// input 명령어를 통해 처리
 			this.inputCommand(ruleInput, { isRuleInput: true });
-			
+
 			// 결과 메시지 출력
 			if (isRemoveCommand) {
 				this.success(this.comments.ruleRemoveSuccess);
 			} else {
 				this.success(this.comments.ruleAddSuccess);
 			}
-			
+
 			// 확인하기 안내
 			this.log(this.comments.matchingGroupsHelp);
 			return;
 		}
-		
+
 		// 인자가 없으면 입력 모드로 전환
 		this.log(this.comments.matchingSetup);
 		this.log(this.comments.matchingFormat);
@@ -2434,7 +2434,7 @@ loadCommand(profileName = '') {
 		this.addCancelButton();
 		setTimeout(() => this.input.focus(), 50);
 	},
-	
+
 	generateCommand() {
 		if (typeof shuffleTeams === 'function') {
 			this.log(this.comments.teamGenerating);
@@ -2448,23 +2448,23 @@ loadCommand(profileName = '') {
 			this.error(this.comments.shuffleFunctionMissing);
 		}
 	},
-	
+
 	hiddenCommand() {
 		if (!this.hasWriteAccess()) {
 			this.error(this.comments.ruleReadOnlyError);
 			this.log(this.comments.authenticationRequired);
 			return;
 		}
-		
-		const totalHidden = state.hiddenGroups.length + state.hiddenGroupChains.length + 
+
+		const totalHidden = state.hiddenGroups.length + state.hiddenGroupChains.length +
 		                    state.pendingHiddenGroups.length + state.pendingHiddenGroupChains.length +
 						(state.probabilisticForbiddenPairs?.length || 0);
-		
+
 		if (totalHidden === 0) {
 			this.log(this.comments.noProbabilityRules);
 			return;
 		}
-		
+
 		let output = `<div style="margin: 10px 0;">
 			<div style="font-weight: bold; margin-bottom: 8px;">📊 ${this.comments.probabilityRules} (${this.comments.ruleSetup} : <code data-cmd="규칙">규칙</code>)</div>`;
 
@@ -2543,7 +2543,7 @@ loadCommand(profileName = '') {
 			}
 		});
 
-		// 확률 제약 규칙 (probabilisticForbiddenPairs)
+		// 확률 분리 규칙 (probabilisticForbiddenPairs)
 		(state.probabilisticForbiddenPairs || []).forEach((rule) => {
 			const leftName = rule.leftRaw || rule.left;
 			const rightName = rule.rightRaw || rule.right;
@@ -2567,10 +2567,10 @@ loadCommand(profileName = '') {
 				if (!key) return '';
 				return key.replace(/<[^>]*>/g, '').replace(/'/g, '').replace(/\(보류\)/g, '').trim();
 			};
-			
+
 			const keyA = getCleanKey(a.leftKey);
 			const keyB = getCleanKey(b.leftKey);
-			
+
 			return keyA.localeCompare(keyB, 'ko');
 		});
 
@@ -2618,10 +2618,10 @@ loadCommand(profileName = '') {
 			</tbody>
 		</table>
 		</div>`;
-		
+
 		this.log(output);
 	},
-	
+
 	inputCommand(data, options = {}) {
 		// 참가자 추가 폼에 입력하는 것과 동일하게 처리
 		if (!data || data.trim() === '') {
@@ -2633,22 +2633,22 @@ loadCommand(profileName = '') {
 			setTimeout(() => this.input.focus(), 50);
 			return;
 		}
-		
+
 		// nameInput에 값을 설정하고 addPerson 함수 호출
 		if (typeof addPerson === 'function' && elements.nameInput) {
 			const originalValue = elements.nameInput.value;
 			elements.nameInput.value = data;
 			const isRuleInput = options.isRuleInput === true || this.inputMode === 'matching';
-			
+
 			// addPerson 함수 실행 (fromConsole=true 전달)
 			addPerson(true, { skipAutoDetect: isRuleInput });
-			
+
 			this.success(`${this.comments.participantAddComplete} ${data}`);
 		} else {
 			this.error(this.comments.participantAddDisabled);
 		}
 	},
-	
+
 	reservationCommand(args) {
 		const normalizeReservations = (value) => {
 			const toRow = (item) => {
@@ -2671,7 +2671,7 @@ loadCommand(profileName = '') {
 
 		state.reservations = normalizeReservations(state.reservations);
 		const trimmedArgs = String(args || '').trim();
-		
+
 		// 예약 목록 보기
 		if (trimmedArgs === '목록') {
 			if (state.reservations.length === 0) {
@@ -2694,7 +2694,7 @@ loadCommand(profileName = '') {
 			this.log(this.comments.authenticationRequired);
 			return;
 		}
-	
+
 	// 예약 취소 (마지막 예약 제거)
 	if (trimmedArgs === '취소') {
 		if (state.reservations.length === 0) {
@@ -2706,7 +2706,7 @@ loadCommand(profileName = '') {
 			}
 			return;
 		}
-		
+
 		// 예약 초기화
 		if (trimmedArgs === '초기화') {
 			state.reservations = [];
@@ -2714,7 +2714,7 @@ loadCommand(profileName = '') {
 			saveToLocalStorage();
 			return;
 		}
-		
+
 		// 예약 우선 추가 (맨 앞에 삽입)
 		if (trimmedArgs.startsWith('우선 ')) {
 			const namesStr = trimmedArgs.substring(3).trim();
@@ -2730,7 +2730,7 @@ loadCommand(profileName = '') {
 			}
 			return;
 		}
-		
+
 		// 예약 등록 (A,B,C,D 형태 감지)
 		if (trimmedArgs.includes(',') || trimmedArgs.length > 0) {
 			const names = trimmedArgs.split(',').map(n => n.trim()).filter(n => n);
@@ -2749,7 +2749,7 @@ loadCommand(profileName = '') {
 			}
 			return;
 		}
-		
+
 		// 인자가 없으면 예약 모드 진입
 		if (trimmedArgs === '') {
 			this.log(commandConsoleMessages.comments.reservationModeEnter);
@@ -2760,22 +2760,22 @@ loadCommand(profileName = '') {
 			return;
 		}
 	},
-	
+
 	deleteCommand() {
 		if (!syncEnabled || !currentProfileKey) {
 			this.error(this.comments.firebaseMissing);
 			return;
 		}
-		
+
 		if (!this.hasWriteAccess()) {
 			this.error(this.comments.deleteReadOnlyError);
 			this.log(this.comments.authenticationRequired);
 			return;
 		}
-		
+
 		this.warn(this.comments.profileDeleteAttemptMessage.replace('{profile}', currentProfileKey));
 		this.warn(this.comments.deleteWarning);
-		
+
 		// 비밀번호가 있는지 확인
 		if (this.storedPassword && this.storedPassword !== '') {
 			// 비밀번호가 있으면 비밀번호 입력 모드

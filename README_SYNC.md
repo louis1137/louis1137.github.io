@@ -116,7 +116,7 @@ Profile Key: myprofile
 Firebase: 활성화
 참가자: 10명
 미참가자: 5명
-제약: 2개
+분리: 2개
 ```
 
 #### `help`

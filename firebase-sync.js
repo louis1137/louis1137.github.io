@@ -160,7 +160,7 @@ function ensureProfileToken(profileKey) {
 function getUserCode() {
 	const storageKey = 'userCode';
 	let userCode = localStorage.getItem(storageKey);
-	
+
 	// 이전 키 마이그레이션
 	if (!userCode) {
 		const legacyUserCode = localStorage.getItem('teamMakerUserCode');
@@ -170,12 +170,12 @@ function getUserCode() {
 			localStorage.removeItem('teamMakerUserCode');
 		}
 	}
-	
+
 	if (!userCode) {
 		userCode = generateUserCode();
 		localStorage.setItem(storageKey, userCode);
 	}
-	
+
 	return userCode;
 }
 
@@ -370,7 +370,7 @@ function initFirebase() {
 			if (!currentUserCode) currentUserCode = getUserCode();
 			return true;
 		}
-		
+
 		if (typeof firebase !== 'undefined') {
 			firebaseApp = firebase.initializeApp(firebaseConfig);
 			database = firebase.database();
@@ -392,7 +392,7 @@ function initFirebase() {
 			};
 			console.log('✅ Firebase 초기화 완료');
 			console.log('⚙️ 참가자 입력란에 \'cmd\' 또는 \'command\'를 입력하면 다양한 기능을 사용할 수 있습니다.');
-			
+
 			// 세션에서 로그인된 프로필 키 읽기
 			currentProfileKey = getSessionProfile();
 			setCurrentProfileSource('profiles');
@@ -431,11 +431,11 @@ function getSyncSignature(syncTrigger) {
 // 실시간 동기화 설정 (프로필 로그인 상태에서만 동작)
 function setupRealtimeSync() {
 	if (!database || !currentProfileKey) return;
-	
+
 	// 이미 리스너가 등록되어 있으면 중복 등록 방지
 	if (syncListenerAttached) return;
-	
-	// 이미 데이터가 로드된 경우에는 초기화하지 않음 (people이 없어도 제약/예약 등이 있을 수 있음)
+
+	// 이미 데이터가 로드된 경우에는 초기화하지 않음 (people이 없어도 분리/예약 등이 있을 수 있음)
 	const _hasAnyData = (state.people && state.people.length > 0)
 		|| (state.pendingConstraints && state.pendingConstraints.length > 0)
 		|| (state.forbiddenPairs && state.forbiddenPairs.length > 0)
@@ -448,7 +448,7 @@ function setupRealtimeSync() {
 
 	realtimeSyncActive = true;
 	syncListenerAttached = true;
-	
+
 	const triggerPaths = [
 		`profiles/${currentProfileKey}/syncTrigger`,
 		`users/${currentProfileKey}/syncTrigger`
@@ -610,7 +610,7 @@ function loadDataByType(type) {
 				state.probabilisticForbiddenPairs = probabilisticForbiddenPairsSnap.val() || [];
 				state.activeProbabilisticForbiddenPairs = [];
 			});
-		
+
 		case 'option':
 			// 옵션만 로드
 			return Promise.all([
@@ -623,16 +623,16 @@ function loadDataByType(type) {
 				state.genderBalanceEnabled = genderBalanceSnap.val() || false;
 				state.weightBalanceEnabled = weightBalanceSnap.val() || false;
 				state.membersPerTeam = membersPerTeamSnap.val() || 4;
-				
+
 				if (elements.maxTeamSizeCheckbox) elements.maxTeamSizeCheckbox.checked = state.maxTeamSizeEnabled;
 				if (elements.genderBalanceCheckbox) elements.genderBalanceCheckbox.checked = state.genderBalanceEnabled;
 				if (elements.weightBalanceCheckbox) elements.weightBalanceCheckbox.checked = state.weightBalanceEnabled;
 				if (elements.teamSizeInput) elements.teamSizeInput.value = state.membersPerTeam;
-				
+
 				// 옵션 변경에 따라 참가자 UI 업데이트
 				renderPeople();
 			});
-		
+
 		case 'member':
 			// 참가자만 로드
 			return Promise.all([
@@ -643,11 +643,11 @@ function loadDataByType(type) {
 				state.people = peopleSnap.val() || [];
 				state.inactivePeople = inactivePeopleSnap.val() || [];
 				state.nextId = nextIdSnap.val() || 1;
-				
+
 				buildForbiddenMap();
 				renderPeople();
 			});
-		
+
 		case 'people':
 			// 미참가자만 로드
 			return database.ref(`profiles/${currentProfileKey}/inactivePeople`).once('value')
@@ -655,9 +655,9 @@ function loadDataByType(type) {
 					state.inactivePeople = snapshot.val() || [];
 					renderPeople();
 				});
-		
+
 		case 'constraint':
-			// 제약만 로드
+			// 분리만 로드
 			return Promise.all([
 				database.ref(`profiles/${currentProfileKey}/requiredGroups`).once('value'),
 				database.ref(`profiles/${currentProfileKey}/forbiddenPairs`).once('value'),
@@ -666,11 +666,11 @@ function loadDataByType(type) {
 				state.requiredGroups = requiredGroupsSnap.val() || [];
 				state.forbiddenPairs = forbiddenPairsSnap.val() || [];
 				state.pendingConstraints = pendingConstraintsSnap.val() || [];
-				
+
 				buildForbiddenMap();
 				renderPeople();
 			});
-		
+
 		case 'reservation':
 		// 예약만 로드 (동기화 예약 명령어로 실행된 경우)
 		const oldReservationCount = state.reservations ? state.reservations.length : 0;
@@ -777,13 +777,13 @@ function clearState() {
 	state.genderBalanceEnabled = false;
 	state.weightBalanceEnabled = false;
 	state.membersPerTeam = 4;
-	
+
 	// UI 업데이트
 	if (elements.maxTeamSizeCheckbox) elements.maxTeamSizeCheckbox.checked = false;
 	if (elements.genderBalanceCheckbox) elements.genderBalanceCheckbox.checked = false;
 	if (elements.weightBalanceCheckbox) elements.weightBalanceCheckbox.checked = false;
 	if (elements.teamSizeInput) elements.teamSizeInput.value = 4;
-	
+
 	renderPeople();
 }
 

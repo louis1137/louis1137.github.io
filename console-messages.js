@@ -34,14 +34,14 @@ const commandConsoleMessages = {
 		'</tr></thead>' +
 		'<tbody style="font-size: 14px;">' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="load">load</code> / <code data-cmd="불러오기">불러오기</code></td><td style="padding: 10px;">서버에 저장된 데이터를 불러옵니다. 최신 저장 상태로 복원되며, 화면이 자동으로 업데이트됩니다.</td></tr>' +
-		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="status">status</code> / <code data-cmd="상태">상태</code></td><td style="padding: 10px;">현재 Profile Key, Firebase 연결 상태, 참가자 수, 미참가자 수, 제약 조건 개수 등 현재 상태를 확인합니다.</td></tr>' +
+		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="status">status</code> / <code data-cmd="상태">상태</code></td><td style="padding: 10px;">현재 Profile Key, Firebase 연결 상태, 참가자 수, 미참가자 수, 분리 조건 개수 등 현재 상태를 확인합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="login">login</code> / <code data-cmd="로그인">로그인</code></td><td style="padding: 10px;">읽기 전용 모드에서 쓰기 모드로 전환합니다. 비밀번호를 입력하여 인증하면 데이터 수정이 가능합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="logout">logout</code> / <code data-cmd="종료">종료</code></td><td style="padding: 10px;">쓰기 모드에서 읽기 전용 모드로 전환합니다. 데이터를 읽을 수만 있고 수정할 수 없습니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="profile">profile</code> / <code data-cmd="프로필">프로필</code></td><td style="padding: 10px;">다른 프로필로 전환합니다. 프로필 이름을 입력하면 해당 프로필의 데이터를 불러옵니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="password">password</code> / <code data-cmd="비밀번호">비밀번호</code></td><td style="padding: 10px;">현재 프로필의 비밀번호를 변경합니다. 현재 비밀번호 확인 후 새 비밀번호를 설정할 수 있습니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="member">member</code> / <code data-cmd="참가자">참가자</code></td><td style="padding: 10px;">현재 등록된 모든 참가자 목록을 확인합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="people">people</code> / <code data-cmd="미참가자">미참가자</code></td><td style="padding: 10px;">현재 등록된 모든 미참가자 목록을 확인합니다.</td></tr>' +
-		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="constraints">constraints</code> / <code data-cmd="제약">제약</code></td><td style="padding: 10px;">현재 설정된 제약 조건 목록을 확인합니다.</td></tr>' +
+		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="constraints">constraints</code> / <code data-cmd="분리">분리</code></td><td style="padding: 10px;">현재 설정된 분리 조건 목록을 확인합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="input">input</code> / <code data-cmd="입력">입력</code></td><td style="padding: 10px;">참가자 데이터를 직접 입력할 수 있는 모드로 들어갑니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="input 데이터">input 데이터</code> / <code data-cmd="입력 데이터">입력 데이터</code></td><td style="padding: 10px;">참가자 데이터를 직접 입력합니다. 예: <code data-cmd="입력 홍길동,김철수">입력 홍길동,김철수</code></td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="generate">generate</code> / <code data-cmd="생성">생성</code></td><td style="padding: 10px;">설정된 조건에 따라 랜덤 팀을 생성합니다.</td></tr>' +
@@ -56,15 +56,15 @@ const commandConsoleMessages = {
 		'<th style="padding: 12px; text-align: left; color: #f59e0b; font-weight: bold;">설명</th>' +
 		'</tr></thead>' +
 		'<tbody style="font-size: 14px;">' +
-		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="save">save</code> / <code data-cmd="저장">저장</code></td><td style="padding: 10px;">현재 참가자, 미참가자, 제약 조건, 설정 등 모든 상태를 서버에 저장합니다. 동일한 Profile Key로 접속한 다른 사용자들과 실시간으로 공유됩니다.</td></tr>' +
+		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="save">save</code> / <code data-cmd="저장">저장</code></td><td style="padding: 10px;">현재 참가자, 미참가자, 분리 조건, 설정 등 모든 상태를 서버에 저장합니다. 동일한 Profile Key로 접속한 다른 사용자들과 실시간으로 공유됩니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync">sync</code> / <code data-cmd="동기화">동기화</code></td><td style="padding: 10px;">서버의 최신 데이터를 불러와 현재 화면과 동기화합니다. 다른 사용자가 변경한 내용을 즉시 반영합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync rule">sync rule</code> / <code data-cmd="동기화 규칙">동기화 규칙</code></td><td style="padding: 10px;">확률 규칙만 서버에 저장하고 동기화합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync option">sync option</code> / <code data-cmd="동기화 옵션">동기화 옵션</code></td><td style="padding: 10px;">팀 생성 옵션만 서버에 저장하고 동기화합니다. (최대인원, 성별균형, 가중치균형, 팀 인원수)</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync member">sync member</code> / <code data-cmd="동기화 참가자">동기화 참가자</code></td><td style="padding: 10px;">참가자 목록만 서버에 저장하고 동기화합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync people">sync people</code> / <code data-cmd="동기화 미참가자">동기화 미참가자</code></td><td style="padding: 10px;">미참가자 목록만 서버에 저장하고 동기화합니다.</td></tr>' +
-		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync constraint">sync constraint</code> / <code data-cmd="동기화 제약">동기화 제약</code></td><td style="padding: 10px;">제약 조건만 서버에 저장하고 동기화합니다.</td></tr>' +
+		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync constraint">sync constraint</code> / <code data-cmd="동기화 분리">동기화 분리</code></td><td style="padding: 10px;">분리 조건만 서버에 저장하고 동기화합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="sync reservation">sync reservation</code> / <code data-cmd="동기화 예약">동기화 예약</code></td><td style="padding: 10px;">예약 목록만 서버에 저장하고 동기화합니다.</td></tr>' +
-		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="clear">clear</code> / <code data-cmd="초기화">초기화</code></td><td style="padding: 10px;">참가자, 미참가자, 제약, 확률 그룹, 옵션 설정을 모두 초기화합니다. ⚠️ 비밀번호와 프로필은 유지되며, 초기화된 데이터는 복구할 수 없습니다.</td></tr>' +
+		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="clear">clear</code> / <code data-cmd="초기화">초기화</code></td><td style="padding: 10px;">참가자, 미참가자, 분리, 확률 그룹, 옵션 설정을 모두 초기화합니다. ⚠️ 비밀번호와 프로필은 유지되며, 초기화된 데이터는 복구할 수 없습니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="delete">delete</code> / <code data-cmd="삭제">삭제</code></td><td style="padding: 10px;">현재 프로필을 완전히 삭제합니다. ⚠️ 비밀번호 확인과 프로필 이름 확인 후 삭제되며 복구할 수 없습니다. 삭제 후 프로필 선택 화면으로 이동합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="확률">확률</code></td><td style="padding: 10px;">확률 그룹 및 설정된 확률 규칙을 확인합니다.</td></tr>' +
 		'<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><td style="padding: 10px;"><code data-cmd="규칙">규칙</code> / <code data-cmd="rule">rule</code></td><td style="padding: 10px;">확률 규칙을 등록할 수 있는 모드로 들어갑니다.</td></tr>' +
@@ -164,7 +164,7 @@ const commandConsoleMessages = {
 		syncOptionComplete: '✅ 옵션 동기화 완료',
 		syncMemberComplete: '✅ 참가자 동기화 완료',
 		syncPeopleComplete: '✅ 미참가자 동기화 완료',
-		syncConstraintComplete: '✅ 제약 동기화 완료',
+		syncConstraintComplete: '✅ 분리 동기화 완료',
 		syncReservationComplete: '✅ 예약 동기화 완료',
 		loadComplete: '📥 데이터 로드 완료! (확인하기: <code data-cmd="상태">상태</code>)',
 		dataLoadFailed: '데이터 로드 실패: ',
@@ -174,13 +174,13 @@ const commandConsoleMessages = {
 
 		// --- 초기화/리셋 관련 ---
 		clearComplete: '🗑️ 데이터 초기화 완료 (비밀번호 유지)',
-		clearConfirmMessage: '⚠️ 참가자, 미참가자, 제약, 확률 그룹, 옵션 설정을 모두 초기화하시겠습니까?\n(비밀번호와 프로필은 유지됩니다)',
+		clearConfirmMessage: '⚠️ 참가자, 미참가자, 분리, 확률 그룹, 옵션 설정을 모두 초기화하시겠습니까?\n(비밀번호와 프로필은 유지됩니다)',
 		resetAllConfirm: '모든 데이터를 초기화하시겠습니까?',
 		completeResetConfirm: '⚠️ 완전 초기화를 실행합니다!\n\n참가자와 미참가자를 포함한 모든 데이터가 완전히 삭제됩니다.',
 		resetComplete: '완전 초기화: 참가자 및 미참가자 모두 삭제되었습니다.',
-		resetConstraintsConverted: '초기화: 기존 제약 {count}개가 보류 제약으로 변환되어 유지됩니다.',
-		constraintsCleared: '제약 목록이 모두 초기화되었습니다.',
-		resetAllConstraintsConfirm: '모든 제약을 초기화하시겠습니까?',
+		resetConstraintsConverted: '초기화: 기존 분리 {count}개가 보류 분리으로 변환되어 유지됩니다.',
+		constraintsCleared: '분리 목록이 모두 초기화되었습니다.',
+		resetAllConstraintsConfirm: '모든 분리을 초기화하시겠습니까?',
 		resetButton: '초기화',
 		resetFailed: '초기화 실패:',
 
@@ -200,21 +200,21 @@ const commandConsoleMessages = {
 		genderMale: '남',
 		genderFemale: '여',
 
-		// --- 제약 조건 관련 ---
-		noConstraints: '설정된 제약 조건이 없습니다.',
-		constraintManagement: '제약 관리',
+		// --- 분리 조건 관련 ---
+		noConstraints: '설정된 분리 조건이 없습니다.',
+		constraintManagement: '분리 관리',
 		constraintConnection: '참가자 분리',
 		constraintInputPlaceholder: '예: A!B 또는 해지: A!!B (쉼표로 여러 항목 가능)',
-		appliedConstraints: '적용된 제약',
-		pendingConstraints: '대기중인 제약',
-		constraintAddFailed: '금지 제약 추가 실패:',
-		constraintRemoveFailed: '제약 제거 실패: 동일인 제약은 불가능합니다.',
-		constraintNotFound: '해당 제약을 찾을 수 없습니다.',
-		samePersonConstraintError: '동일인에 대한 제약은 불가능합니다.',
-		sameGroupConstraintError: '와 는 같은 그룹에 속해 있어 제약을 추가할 수 없습니다.',
-		constraintInSameGroup: '같은 그룹에 금지 제약이 있습니다.',
-		constraintPlacementImpossible: '제약 조건으로 팀 배치가 불가능합니다. 다시 시도해주세요.',
-		userNotFoundForConstraint: '제약 대상 사용자를 찾을 수 없습니다:',
+		appliedConstraints: '적용된 분리',
+		pendingConstraints: '대기중인 분리',
+		constraintAddFailed: '금지 분리 추가 실패:',
+		constraintRemoveFailed: '분리 제거 실패: 동일인 분리은 불가능합니다.',
+		constraintNotFound: '해당 분리을 찾을 수 없습니다.',
+		samePersonConstraintError: '동일인에 대한 분리은 불가능합니다.',
+		sameGroupConstraintError: '와 는 같은 그룹에 속해 있어 분리을 추가할 수 없습니다.',
+		constraintInSameGroup: '같은 그룹에 금지 분리이 있습니다.',
+		constraintPlacementImpossible: '분리 조건으로 팀 배치가 불가능합니다. 다시 시도해주세요.',
+		userNotFoundForConstraint: '분리 대상 사용자를 찾을 수 없습니다:',
 
 		// --- 확률/매칭 규칙 관련 ---
 		noProbabilityRules: '설정된 확률 규칙이 없습니다.',
@@ -257,7 +257,7 @@ const commandConsoleMessages = {
 
 		// --- 기타 UI 요소 ---
 		showButton: '보기',
-		showButtonWarning: ' 보기 버튼을 누르면 제약셋팅의 목록이 노출됩니다',
+		showButtonWarning: ' 보기 버튼을 누르면 분리셋팅의 목록이 노출됩니다',
 		noneText: '없음',
 		nextButton: '다음',
 		confirmButton: '확인',

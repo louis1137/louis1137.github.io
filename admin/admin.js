@@ -505,7 +505,7 @@ function buildHistoryDetailLines(historyItem) {
 
 	if (historyItem.appliedConstraints.length) {
 		lines.push('');
-		lines.push('[적용된 제약]');
+		lines.push('[적용된 분리]');
 		historyItem.appliedConstraints.forEach((item) => {
 			lines.push(`- ${item}`);
 		});
@@ -1706,7 +1706,7 @@ function getSectionLabel(section) {
 		return '옵션';
 	}
 	if (section === 'constraint') {
-		return '제약';
+		return '분리';
 	}
 	if (section === 'rule') {
 		return '규칙';
@@ -2196,6 +2196,16 @@ function bindEvents() {
 			}
 			reservationDraft.splice(index, 1);
 			renderReservationTable();
+			if (selected.type && selected.key) {
+				const reservations = reservationDraft
+					.map((batch) => batch.filter((g) => g.some((n) => String(n ?? '').trim())))
+					.filter((batch) => batch.length > 0);
+				_isSaving = true;
+				savePayloadByType(selected.type, selected.key, { reservations: reservations.length ? reservations : null })
+					.then(() => loadSelectedItem())
+					.catch(() => showToast('삭제 저장 실패'))
+					.finally(() => { _isSaving = false; });
+			}
 		});
 
 		bindReorderDnD(reservationTableBody, {
