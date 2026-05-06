@@ -538,7 +538,7 @@ function loadDataByType(type) {
 					database.ref(`${userBase}/membersPerTeam`).once('value')
 				]).then(([maxTeamSizeSnap, genderBalanceSnap, weightBalanceSnap, membersPerTeamSnap]) => {
 					state.maxTeamSizeEnabled = maxTeamSizeSnap.val() || false;
-					state.genderBalanceEnabled = genderBalanceSnap.val() || false;
+					state.genderBalanceEnabled = genderBalanceSnap.val() ?? true;
 					state.weightBalanceEnabled = weightBalanceSnap.val() || false;
 					state.membersPerTeam = membersPerTeamSnap.val() || 4;
 					if (elements.maxTeamSizeCheckbox) elements.maxTeamSizeCheckbox.checked = state.maxTeamSizeEnabled;
@@ -620,7 +620,7 @@ function loadDataByType(type) {
 				database.ref(`profiles/${currentProfileKey}/membersPerTeam`).once('value')
 			]).then(([maxTeamSizeSnap, genderBalanceSnap, weightBalanceSnap, membersPerTeamSnap]) => {
 				state.maxTeamSizeEnabled = maxTeamSizeSnap.val() || false;
-				state.genderBalanceEnabled = genderBalanceSnap.val() || false;
+				state.genderBalanceEnabled = genderBalanceSnap.val() ?? true;
 				state.weightBalanceEnabled = weightBalanceSnap.val() || false;
 				state.membersPerTeam = membersPerTeamSnap.val() || 4;
 
@@ -730,7 +730,7 @@ function loadStateFromData(data) {
 	state.reservations = normalizeReservations(data.reservations);
 	state.userReservations = [];
 	state.maxTeamSizeEnabled = data.maxTeamSizeEnabled || false;
-	state.genderBalanceEnabled = data.genderBalanceEnabled || false;
+	state.genderBalanceEnabled = data.genderBalanceEnabled ?? true;
 	state.weightBalanceEnabled = data.weightBalanceEnabled || false;
 	state.membersPerTeam = data.membersPerTeam || 4;
 
@@ -774,13 +774,13 @@ function clearState() {
 	state.activeHiddenGroupMap = {};
 	state.activeHiddenGroupChainInfo = {};
 	state.maxTeamSizeEnabled = false;
-	state.genderBalanceEnabled = false;
+	state.genderBalanceEnabled = true;
 	state.weightBalanceEnabled = false;
 	state.membersPerTeam = 4;
 
 	// UI 업데이트
 	if (elements.maxTeamSizeCheckbox) elements.maxTeamSizeCheckbox.checked = false;
-	if (elements.genderBalanceCheckbox) elements.genderBalanceCheckbox.checked = false;
+	if (elements.genderBalanceCheckbox) elements.genderBalanceCheckbox.checked = true;
 	if (elements.weightBalanceCheckbox) elements.weightBalanceCheckbox.checked = false;
 	if (elements.teamSizeInput) elements.teamSizeInput.value = 4;
 

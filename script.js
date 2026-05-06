@@ -44,7 +44,7 @@ const state = {
 	pendingHiddenGroupChains: [], // [{primary: 정규화, candidates: [{name, probability}]}] 형식 - 보류 체이닝
 	reservations: [], // [["A","B","C","D"], ["E","F"], ...] 형식의 예약 스택 (인덱스 0이 다음 사용될 예약)
 	userReservations: [], // users/${currentUserCode}/reservations 에서 로드한 예약 스택 (프로필+유저 합산 소모용)
-	genderBalanceEnabled: false,
+	genderBalanceEnabled: true,
 	weightBalanceEnabled: false,
 	maxTeamSizeEnabled: false,
 	membersPerTeam: 4,
@@ -294,11 +294,11 @@ function exitReadOnlyMode() {
 	// 토큰 모드 해제 시 프로필의 옵션값을 기본으로 초기화
 	// (이후 프로필 로그인이 되면 loadStateFromData가 덮어쓰고, 아니면 빈 상태 유지)
 	state.maxTeamSizeEnabled = false;
-	state.genderBalanceEnabled = false;
+	state.genderBalanceEnabled = true;
 	state.weightBalanceEnabled = false;
 	state.membersPerTeam = 4;
 	if (elements.maxTeamSizeCheckbox) elements.maxTeamSizeCheckbox.checked = false;
-	if (elements.genderBalanceCheckbox) elements.genderBalanceCheckbox.checked = false;
+	if (elements.genderBalanceCheckbox) elements.genderBalanceCheckbox.checked = true;
 	if (elements.weightBalanceCheckbox) elements.weightBalanceCheckbox.checked = false;
 	if (elements.teamSizeInput) elements.teamSizeInput.value = 4;
 }
@@ -1223,7 +1223,7 @@ function saveToLocalStorage(delay = 1000) {
 						timestamp: data.timestamp,
 						lastAccess: data.lastAccess,
 						maxTeamSizeEnabled: false,
-						genderBalanceEnabled: false,
+						genderBalanceEnabled: true,
 						weightBalanceEnabled: false,
 						membersPerTeam: 4,
 						_fromTokenMode: true
