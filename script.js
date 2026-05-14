@@ -288,6 +288,15 @@ async function initTokenMode() {
 	const token = params.get('token');
 	if (!token) return false;
 
+	// 자동로그인이 설정되어 있으면 토큰 사용을 건너뛰고 URL 파라미터만 제거.
+	// 자동로그인이 URL 파라미터를 정리하므로 토큰 사용은 의미가 없음.
+	let savedAutoLogin = null;
+	try { savedAutoLogin = JSON.parse(localStorage.getItem('profileAutoLogin') || 'null'); } catch (_) {}
+	if (savedAutoLogin && savedAutoLogin.username && savedAutoLogin.password) {
+		history.replaceState({}, '', window.location.pathname);
+		return false;
+	}
+
 	if (!database && typeof initFirebase === 'function') initFirebase();
 	if (!database) return false;
 
@@ -561,10 +570,8 @@ function init() {
 	// 초기 로그인 상태 UI 반영 (세션에 로그인 정보 있으면 표시)
 	updateLoginUI();
 
-	// 자동 로그인 시도 (세션이 없을 때만)
-	if (!currentProfileKey) {
-		tryAutoLogin();
-	}
+	// 자동 로그인은 위쪽 initTokenMode().then() 분기에서 처리됨.
+	// 중복 호출 시 initTokenMode와 병렬 실행되어 토큰/로그인이 동시에 활성화되는 문제 발생.
 
 	// 개발자 도구가 열려있으면 cmd 콘솔 자동으로 열기
 	checkDevToolsAndOpenConsole();
