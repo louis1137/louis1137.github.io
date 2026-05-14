@@ -32,6 +32,9 @@ let _isSaving = false;
 let _sessionTimerInterval = null;
 const _ADMIN_SESSION_STALE_MS = 5000;
 
+// 좌측 목록 배지 로컬 tick (heartbeat 도착 타이밍과 분 경계가 어긋나도 즉시 갱신)
+let _listBadgeTickInterval = null;
+
 // 목록 캐시 (구조 변경 감지용)
 const _listCache = { profiles: null, users: null };
 const SESSION_ONLY_FIELDS = new Set(['heartbeat','sessionStart','online','tokenOnline','sessionType','onlineUser','tokenOnlineUser','lastAccess']);
@@ -1401,6 +1404,19 @@ function teardownListListeners() {
 		_usersListenerRef.off('value');
 		_usersListenerRef = null;
 	}
+	stopListBadgeTick();
+}
+
+function startListBadgeTick() {
+	if (_listBadgeTickInterval) return;
+	_listBadgeTickInterval = setInterval(() => {
+		if (_listCache.profiles) updateListBadgesInPlace('profiles', _listCache.profiles);
+		if (_listCache.users) updateListBadgesInPlace('users', _listCache.users);
+	}, 1000);
+}
+
+function stopListBadgeTick() {
+	if (_listBadgeTickInterval) { clearInterval(_listBadgeTickInterval); _listBadgeTickInterval = null; }
 }
 
 function teardownSelectedListener() {
@@ -1435,6 +1451,7 @@ function updateEditorIfSelected(type, key, data) {
 
 function setupRealtimeListeners() {
 	teardownListListeners();
+	startListBadgeTick();
 
 	_profilesListenerRef = database.ref('profiles');
 	_profilesListenerRef.on('value', (snapshot) => {
