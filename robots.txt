@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://louis1137.github.io/createTeamProgram/sitemap.xml
+Sitemap: https://louis1137.github.io/sitemap.xml
