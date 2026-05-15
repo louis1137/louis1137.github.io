@@ -584,8 +584,8 @@ function checkDevToolsAndOpenConsole() {
 	const heightThreshold = window.outerHeight - window.innerHeight > threshold;
 	const isDevToolsOpen = widthThreshold || heightThreshold;
 
-	// 로컬 환경이면서 개발자 도구가 열려있을 때만 콘솔 자동 열기
-	if (isLocalView() && isDevToolsOpen) {
+	// 커맨드 콘솔 창 비활성화 (자동 열기 차단)
+	if (false && isLocalView() && isDevToolsOpen) {
 		// 개발자 도구가 열려있으면 콘솔 자동 열기
 		setTimeout(() => {
 			const consoleEl = document.getElementById('commandConsole');
@@ -1702,8 +1702,13 @@ function addPerson(fromConsole = false, options = {}) {
 		return;
 	}
 
-	// 콘솔 열기 명령어 체크
+	// 콘솔 열기 명령어 체크 (커맨드 콘솔 창 비활성화 - 입력만 소비하고 창은 열지 않음)
 	if (input.toLowerCase() === 'command' || input.toLowerCase() === 'cmd') {
+		elements.nameInput.value = '';
+		elements.nameInput.focus();
+		return;
+	}
+	if (false) {
 		const consoleEl = document.getElementById('commandConsole');
 		if (consoleEl) {
 			consoleEl.style.display = 'flex';
