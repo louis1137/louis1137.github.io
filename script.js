@@ -7,6 +7,66 @@ const blindDelay = isLocalView() ? null : null;
 const SHOW_VALIDATION_COMPARISON = isLocalView() ? false : false;
 try { window.blindDelay = blindDelay; } catch (_) { /* no-op */ }
 
+/* ===== 공용 알림/확인 모달 (네이티브 alert/confirm 대체) ===== */
+function showAppDialog(message, { isAlert, okText, cancelText } = {}) {
+	return new Promise((resolve) => {
+		const dialog = document.getElementById('appDialog');
+		const msgEl = document.getElementById('appDialogMessage');
+		const okBtn = document.getElementById('appDialogConfirmBtn');
+		const cancelBtn = document.getElementById('appDialogCancelBtn');
+
+		// 모달 마크업이 없으면 네이티브로 폴백
+		if (!dialog || !msgEl || !okBtn || !cancelBtn) {
+			resolve(isAlert ? undefined : window.confirm(message));
+			return;
+		}
+
+		msgEl.textContent = String(message == null ? '' : message);
+		okBtn.textContent = okText || '확인';
+		cancelBtn.textContent = cancelText || '취소';
+		dialog.classList.toggle('is-alert', !!isAlert);
+
+		const overlay = dialog.querySelector('.app-dialog-overlay');
+
+		function cleanup() {
+			okBtn.onclick = null;
+			cancelBtn.onclick = null;
+			if (overlay) overlay.onclick = null;
+			document.removeEventListener('keydown', onKey, true);
+			dialog.classList.remove('visible');
+			setTimeout(() => {
+				if (!dialog.classList.contains('visible')) dialog.style.display = 'none';
+			}, 280);
+		}
+		function settle(result) {
+			cleanup();
+			resolve(result);
+		}
+		function onKey(e) {
+			if (e.key === 'Escape') { e.preventDefault(); settle(isAlert ? undefined : false); }
+			else if (e.key === 'Enter') { e.preventDefault(); settle(isAlert ? undefined : true); }
+		}
+
+		okBtn.onclick = () => settle(isAlert ? undefined : true);
+		cancelBtn.onclick = () => settle(isAlert ? undefined : false);
+		if (overlay) overlay.onclick = () => settle(isAlert ? undefined : false);
+		document.addEventListener('keydown', onKey, true);
+
+		dialog.style.display = 'flex';
+		// 리플로우 후 애니메이션 트리거
+		requestAnimationFrame(() => requestAnimationFrame(() => {
+			dialog.classList.add('visible');
+			okBtn.focus();
+		}));
+	});
+}
+function appAlert(message, opts = {}) {
+	return showAppDialog(message, { isAlert: true, okText: opts.okText });
+}
+function appConfirm(message, opts = {}) {
+	return showAppDialog(message, { isAlert: false, okText: opts.okText, cancelText: opts.cancelText });
+}
+
 const state = {
 	people: [],
 	inactivePeople: [], // 미참가자 목록 (성별/가중치 저장)
@@ -1277,20 +1337,20 @@ function loadFromLocalStorage() {
 function captureResultsSection() {
 	const section = elements.resultsSection;
 	if (!section || !section.classList.contains('visible')) {
-		alert(commandConsoleMessages.comments.noTeamResults);
+		appAlert(commandConsoleMessages.comments.noTeamResults);
 		return;
 	}
 
 	// html2canvas가 로드되었는지 확인
 	if (typeof html2canvas === 'undefined') {
-		alert(commandConsoleMessages.comments.html2canvasNotFound);
+		appAlert(commandConsoleMessages.comments.html2canvasNotFound);
 		return;
 	}
 
 	// 캡처할 실제 영역 (::after 효과 제외)
 	const captureArea = section.querySelector('.results-capture-area');
 	if (!captureArea) {
-		alert(commandConsoleMessages.comments.captureAreaNotFound);
+		appAlert(commandConsoleMessages.comments.captureAreaNotFound);
 		return;
 	}
 
@@ -1331,7 +1391,7 @@ function captureResultsSection() {
 		// 캔버스를 이미지로 변환하여 클립보드에 복사
 		canvas.toBlob(blob => {
 			if (!blob) {
-				alert(commandConsoleMessages.comments.imageGenerationFailed);
+				appAlert(commandConsoleMessages.comments.imageGenerationFailed);
 				btn.innerHTML = originalHTML;
 				btn.disabled = false;
 				return;
@@ -1339,7 +1399,7 @@ function captureResultsSection() {
 
 			// 클립보드 API 확인
 			if (!navigator.clipboard || !navigator.clipboard.write) {
-				alert(commandConsoleMessages.comments.clipboardHttpsRequired);
+				appAlert(commandConsoleMessages.comments.clipboardHttpsRequired);
 				btn.innerHTML = originalHTML;
 				btn.disabled = false;
 				return;
@@ -1357,14 +1417,14 @@ function captureResultsSection() {
 				btn.disabled = false;
 			}).catch(err => {
 				console.error('클립보드 복사 실패:', err);
-				alert(commandConsoleMessages.comments.clipboardCopyFailed);
+				appAlert(commandConsoleMessages.comments.clipboardCopyFailed);
 				btn.innerHTML = originalHTML;
 				btn.disabled = false;
 			});
 		}, 'image/png');
 	}).catch(err => {
 		console.error('캐처 실패:', err);
-		alert(commandConsoleMessages.comments.captureFailed);
+		appAlert(commandConsoleMessages.comments.captureFailed);
 		btn.innerHTML = originalHTML;
 		btn.disabled = false;
 	});
@@ -1571,18 +1631,15 @@ function triggerParticipantFlash() {
 	}, 600);
 }
 
-function resetAll(e) {
+async function resetAll(e) {
 	// Shift 키를 누른 상태로 클릭한 경우 완전 초기화
 	const isCompleteReset = e && e.shiftKey;
 
-	if (isCompleteReset) {
-		if (!confirm(commandConsoleMessages.comments.completeResetConfirm)) {
-			return;
-		}
-	} else {
-		if (!confirm(commandConsoleMessages.comments.resetAllConfirm)) {
-			return;
-		}
+	const confirmMsg = isCompleteReset
+		? commandConsoleMessages.comments.completeResetConfirm
+		: commandConsoleMessages.comments.resetAllConfirm;
+	if (!(await appConfirm(confirmMsg))) {
+		return;
 	}
 
 	// 적용된(id 기반) 분리을 이름 기반 보류 분리으로 변환하여 유지
@@ -1663,7 +1720,7 @@ function handleTeamSizeChange(e) {
 
 function shuffleOrder() {
 	if (state.people.length === 0) {
-		alert(commandConsoleMessages.comments.noParticipants);
+		appAlert(commandConsoleMessages.comments.noParticipants);
 		return;
 	}
 
@@ -1691,7 +1748,7 @@ let pendingAddData = null;
 function addPerson(fromConsole = false, options = {}) {
 	const input = elements.nameInput.value.trim();
 	if (input === '') {
-		if (!fromConsole) alert(commandConsoleMessages.comments.nameRequired);
+		if (!fromConsole) appAlert(commandConsoleMessages.comments.nameRequired);
 		return;
 	}
 
@@ -1835,7 +1892,7 @@ function addPerson(fromConsole = false, options = {}) {
 	const tokens = input.split('/').map(t => t.trim()).filter(t => t !== '');
 
 	if (tokens.length === 0) {
-		if (!fromConsole) alert(commandConsoleMessages.comments.nameRequired);
+		if (!fromConsole) appAlert(commandConsoleMessages.comments.nameRequired);
 		return;
 	}
 
@@ -3977,9 +4034,44 @@ function openForbiddenWindow() {
 			<section id="pendingSection" style="display:none"><h2>${commandConsoleMessages.comments.pendingConstraints}</h2><div id="pendingList"></div></section>
 			<script>
 				(function(){
+					// 팝업 전용 알림/확인 모달 (네이티브 alert/confirm 대체)
+					function popupDialog(message, isAlert){
+						return new Promise(function(resolve){
+							var ov = document.createElement('div');
+							ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)';
+							var card = document.createElement('div');
+							card.style.cssText = 'background:#fff;border-radius:16px;padding:26px 24px 20px;max-width:380px;width:100%;box-shadow:0 24px 60px rgba(15,23,42,0.28);text-align:center;font-family:inherit';
+							var msg = document.createElement('p');
+							msg.textContent = String(message == null ? '' : message);
+							msg.style.cssText = 'margin:4px 0 20px;font-size:15px;line-height:1.6;color:#1f2937;white-space:pre-line;word-break:keep-all';
+							var btns = document.createElement('div');
+							btns.style.cssText = 'display:flex;gap:10px;justify-content:center';
+							var ok = document.createElement('button');
+							ok.textContent = '확인';
+							ok.style.cssText = 'flex:1;max-width:150px;height:44px;border:none;border-radius:8px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;background:var(--btn_main)';
+							btns.appendChild(ok);
+							var cancel;
+							if (!isAlert) {
+								cancel = document.createElement('button');
+								cancel.textContent = '취소';
+								cancel.style.cssText = 'flex:1;max-width:150px;height:44px;border:none;border-radius:8px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;background:#9ca3af';
+								btns.appendChild(cancel);
+							}
+							card.appendChild(msg); card.appendChild(btns); ov.appendChild(card);
+							document.body.appendChild(ov);
+							function done(v){ try { document.body.removeChild(ov); } catch(_){} resolve(v); }
+							ok.addEventListener('click', function(){ done(isAlert ? undefined : true); });
+							if (cancel) cancel.addEventListener('click', function(){ done(false); });
+							ov.addEventListener('click', function(e){ if (e.target === ov) done(isAlert ? undefined : false); });
+							ok.focus();
+						});
+					}
+					function pAlert(m){ return popupDialog(m, true); }
+					function pConfirm(m){ return popupDialog(m, false); }
+
 					const parentWindow = window.opener;
 					if (!parentWindow) {
-						alert(commandConsoleMessages.comments.parentWindowNotFound);
+						pAlert(commandConsoleMessages.comments.parentWindowNotFound);
 						return;
 					}
 					const addBtn = document.getElementById('addConstraintBtn');
@@ -4018,13 +4110,13 @@ function openForbiddenWindow() {
 
 					// 초기화 버튼 이벤트
 					if (resetAllBtn) {
-						resetAllBtn.addEventListener('click', ()=>{
-							if (confirm(commandConsoleMessages.comments.resetAllConstraintsConfirm)) {
+						resetAllBtn.addEventListener('click', async ()=>{
+							if (await pConfirm(commandConsoleMessages.comments.resetAllConstraintsConfirm)) {
 								try {
 									if (parentWindow && parentWindow.clearAllConstraints) {
 										parentWindow.clearAllConstraints();
 									} else {
-										alert(commandConsoleMessages.comments.parentWindowNotFound);
+										pAlert(commandConsoleMessages.comments.parentWindowNotFound);
 									}
 								} catch(e){ console.log(e); }
 							}
@@ -4272,11 +4364,11 @@ function createPersonTag(person, potentialDuplicates = [], weightHighIds = new S
 	const removeBtn = document.createElement('button');
 	removeBtn.textContent = '삭제';
 	removeBtn.className = 'remove-btn';
-	removeBtn.addEventListener('click', (e) => {
+	removeBtn.addEventListener('click', async (e) => {
 		// Shift 키를 누른 상태로 클릭한 경우 완전 삭제
 		const isCompleteDelete = e.shiftKey;
 		if (isCompleteDelete) {
-			if (confirm(commandConsoleMessages.comments.completePersonDeleteConfirm.replace('{name}', person.name))) {
+			if (await appConfirm(commandConsoleMessages.comments.completePersonDeleteConfirm.replace('{name}', person.name))) {
 				removePerson(person.id, true);
 			}
 		} else {

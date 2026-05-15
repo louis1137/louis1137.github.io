@@ -136,6 +136,18 @@ main section:last-child {border-bottom: none !important;}
 #duplicateConfirmModal .duplicate-modal-card .duplicate-comparison .duplicate-modal-list {background: #f8f9fa; border: 2px dashed #ddd; border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: 80px; flex: 1;}
 #duplicateConfirmModal .duplicate-modal-card .duplicate-comparison .duplicate-arrow {display: flex; justify-content: center;}
 
+/* [11.4] #appDialog (공용 알림/확인) */
+#appDialog {position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 20px;}
+#appDialog .app-dialog-overlay {position: absolute; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);}
+#appDialog .app-dialog-card {position: relative; background: #fff; border-radius: 16px; padding: 28px 26px 22px; max-width: 400px; width: 100%; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28); text-align: center; transform: scale(0.92) translateY(12px); opacity: 0; transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;}
+#appDialog.visible .app-dialog-card {transform: scale(1) translateY(0); opacity: 1;}
+#appDialog .app-dialog-message {margin: 4px 0 22px; font-size: 15px; line-height: 1.65; color: #1f2937; white-space: pre-line; word-break: keep-all;}
+#appDialog .app-dialog-actions {display: flex; gap: 10px; justify-content: center;}
+#appDialog .app-dialog-actions .style_btn {flex: 1; max-width: 160px; height: 46px; font-size: 15px;}
+#appDialog .app-dialog-cancel {background: #9ca3af;}
+#appDialog .app-dialog-cancel:hover {background: #6b7280;}
+#appDialog.is-alert .app-dialog-cancel {display: none;}
+
 /* [11.5] #editPersonModal */
 #editPersonModal {position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10002; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;}
 #editPersonModal.visible {opacity: 1; pointer-events: auto;}
@@ -150,6 +162,7 @@ main section:last-child {border-bottom: none !important;}
 #editPersonModal .edit-modal-gender {display: flex; gap: 8px;}
 #editPersonModal .edit-gender-btn {padding: 6px 22px; border: 2px solid #ddd; border-radius: 6px; background: white; color: #374151; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.15s;}
 #editPersonModal .edit-gender-btn.active {border-color: var(--btn_main); background: var(--btn_main); color: white;}
+#editPersonModal #editGenderFemale.active {border-color: var(--btn_sub); background: var(--btn_sub); color: white;}
 #editPersonModal .edit-modal-actions {display: flex; justify-content: center; gap: 8px; margin-top: 32px;}
 #editPersonModal .edit-modal-actions .style_btn {width: 80px; height: 32px; font-size: 16px;}
 #editPersonModal .edit-modal-actions #editPersonCloseBtn {background: #9ca3af;}

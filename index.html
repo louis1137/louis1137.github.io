@@ -398,6 +398,18 @@
 		</div>
 	</div>
 
+	<!-- 공용 알림/확인 모달 -->
+	<div id="appDialog" class="app-dialog" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="appDialogMessage">
+		<div class="app-dialog-overlay"></div>
+		<div class="app-dialog-card">
+			<p id="appDialogMessage" class="app-dialog-message"></p>
+			<div class="app-dialog-actions">
+				<button id="appDialogConfirmBtn" class="style_btn app-dialog-confirm" type="button">확인</button>
+				<button id="appDialogCancelBtn" class="style_btn app-dialog-cancel" type="button">취소</button>
+			</div>
+		</div>
+	</div>
+
 	<!-- 명령어 콘솔 -->
 	<section id="commandConsole" class="command-console">
 		<div class="command-header">
