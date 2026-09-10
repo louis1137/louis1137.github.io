@@ -42,6 +42,29 @@ const SESSION_ONLY_FIELDS = new Set(['heartbeat','sessionStart','online','tokenO
 // 에디터 캐시 (session-only 변경 감지용)
 let _editorDataCache = null;
 
+// ==================== 편집 중 보호 ====================
+// 다른 사용자(메인 화면 등)가 같은 항목을 바꾸면 실시간 리스너가 에디터를 통째로 다시 그려
+// 입력 중이던 텍스트가 사라지는 문제를 막는다. 편집 중인 섹션만 갱신을 보류하고,
+// 나머지 섹션은 평소대로 실시간 반영한다.
+const EDITOR_SECTION_CONTAINER_IDS = {
+	member: ['participantsTableBody', 'inactiveTableBody', 'participantsPanel', 'inactivePanel'],
+	constraint: ['constraintTableBody'],
+	rule: ['ruleTableBody'],
+	reservation: ['reservationTableBody']
+};
+const EDITOR_SECTION_LABELS = {
+	member: '참가자',
+	option: '옵션',
+	constraint: '분리',
+	rule: '규칙',
+	reservation: '예약'
+};
+const _sectionDirty = { member: false, option: false, constraint: false, rule: false, reservation: false };
+// 원격 변경이 도착했지만 편집 중이라 반영하지 못한 섹션 (= 현재 draft가 서버보다 낡음)
+const _sectionStale = { member: false, option: false, constraint: false, rule: false, reservation: false };
+// 편집 중이라 반영을 보류한 원격 데이터 { key, type, data }
+let _pendingRemoteData = null;
+
 const ADMIN_ACCESS_SESSION_KEY = 'adminAccessAuthenticated';
 
 const fieldIds = {
@@ -1147,38 +1170,172 @@ function readFormData() {
 	};
 }
 
-function writeFormData(key, type, data) {
+function getOptionFieldIds() {
+	return [
+		fieldIds.membersPerTeam,
+		fieldIds.genderBalanceEnabled,
+		fieldIds.maxTeamSizeEnabled,
+		fieldIds.weightBalanceEnabled,
+		fieldIds.createdAt,
+		fieldIds.lastAccess,
+		fieldIds.password,
+		fieldIds.timestamp
+	];
+}
+
+// 현재 포커스가 어느 섹션 안에 있는지 (없으면 null)
+function getFocusedEditorSection() {
+	const active = document.activeElement;
+	if (!active || active === document.body) {
+		return null;
+	}
+	for (const section of Object.keys(EDITOR_SECTION_CONTAINER_IDS)) {
+		for (const containerId of EDITOR_SECTION_CONTAINER_IDS[section]) {
+			const container = document.getElementById(containerId);
+			if (container && container.contains(active)) {
+				return section;
+			}
+		}
+	}
+	if (active.id && getOptionFieldIds().includes(active.id)) {
+		return 'option';
+	}
+	return null;
+}
+
+// 저장하지 않은 편집이 있거나 지금 그 섹션에 포커스가 있으면 덮어쓰지 않는다
+function isSectionLocked(section) {
+	return _sectionDirty[section] === true || getFocusedEditorSection() === section;
+}
+
+function markSectionDirty(section) {
+	if (!Object.prototype.hasOwnProperty.call(_sectionDirty, section)) {
+		return;
+	}
+	_sectionDirty[section] = true;
+}
+
+function clearSectionDirty(section) {
+	if (!Object.prototype.hasOwnProperty.call(_sectionDirty, section)) {
+		return;
+	}
+	_sectionDirty[section] = false;
+}
+
+function clearAllSectionDirty() {
+	Object.keys(_sectionDirty).forEach((section) => {
+		_sectionDirty[section] = false;
+	});
+}
+
+// 원격 변경을 놓친 섹션 목록 (저장 시 덮어쓰기 방지에 사용)
+function getStaleSections() {
+	return Object.keys(_sectionStale).filter((section) => _sectionStale[section]);
+}
+
+function getSectionLabels(sections) {
+	return sections.map((section) => EDITOR_SECTION_LABELS[section] || section).join(', ');
+}
+
+// 다른 항목을 선택하거나 에디터를 떠날 때 보호 상태 초기화
+function resetEditorGuardState() {
+	clearAllSectionDirty();
+	Object.keys(_sectionStale).forEach((section) => {
+		_sectionStale[section] = false;
+	});
+	_pendingRemoteData = null;
+}
+
+// 보류해 둔 원격 데이터를 조용히 반영 (잠금이 풀린 섹션만 채워진다)
+function applyPendingRemoteData() {
+	if (!_pendingRemoteData) {
+		return;
+	}
+	const { key, type, data } = _pendingRemoteData;
+	if (selected.type !== type || selected.key !== key) {
+		_pendingRemoteData = null;
+		return;
+	}
+	writeFormData(key, type, data);
+}
+
+function writeFormData(key, type, data, options = {}) {
+	const force = options.force === true;
+	const heldSections = [];
+	const canWrite = (section) => force || !isSectionLocked(section);
+
 	getEl(fieldIds.key).textContent = key || '';
-	getEl(fieldIds.membersPerTeam).value = Number.isFinite(data.membersPerTeam) ? data.membersPerTeam : '';
-	getEl(fieldIds.genderBalanceEnabled).checked = Boolean(data.genderBalanceEnabled);
-	getEl(fieldIds.maxTeamSizeEnabled).checked = Boolean(data.maxTeamSizeEnabled);
-	getEl(fieldIds.weightBalanceEnabled).checked = Boolean(data.weightBalanceEnabled);
-	const createdAtValue = data.createdAt || (type === 'profiles' ? (data.timestamp || '') : '');
-	getEl(fieldIds.createdAt).value = createdAtValue;
-	getEl(fieldIds.lastAccess).value = data.lastAccess || '';
-	getEl(fieldIds.password).value = data.password || '';
-	getEl(fieldIds.timestamp).value = data.timestamp || '';
+
+	if (canWrite('option')) {
+		_sectionStale.option = false;
+		getEl(fieldIds.membersPerTeam).value = Number.isFinite(data.membersPerTeam) ? data.membersPerTeam : '';
+		getEl(fieldIds.genderBalanceEnabled).checked = Boolean(data.genderBalanceEnabled);
+		getEl(fieldIds.maxTeamSizeEnabled).checked = Boolean(data.maxTeamSizeEnabled);
+		getEl(fieldIds.weightBalanceEnabled).checked = Boolean(data.weightBalanceEnabled);
+		const createdAtValue = data.createdAt || (type === 'profiles' ? (data.timestamp || '') : '');
+		getEl(fieldIds.createdAt).value = createdAtValue;
+		getEl(fieldIds.lastAccess).value = data.lastAccess || '';
+		getEl(fieldIds.password).value = data.password || '';
+		getEl(fieldIds.timestamp).value = data.timestamp || '';
+	} else {
+		heldSections.push('option');
+		_sectionStale.option = true;
+	}
+
 	// 토큰을 editorTitle 끝에 표시
 	const titleEl = getEl('editorTitle');
 	if (titleEl) {
 		const base = `${selected.type}/${selected.key}`;
 		titleEl.textContent = (type === 'profiles' && data.token) ? `${base} (${data.token})` : base;
 	}
-	cloneMembers(data || {});
-	cloneConstraints(data || {});
-	cloneRules(data || {});
-	cloneReservations(data || {});
+
+	if (canWrite('member')) {
+		_sectionStale.member = false;
+		cloneMembers(data || {});
+		renderMemberTables();
+	} else {
+		heldSections.push('member');
+		_sectionStale.member = true;
+	}
+
+	if (canWrite('constraint')) {
+		_sectionStale.constraint = false;
+		cloneConstraints(data || {});
+		renderConstraintTable();
+	} else {
+		heldSections.push('constraint');
+		_sectionStale.constraint = true;
+	}
+
+	if (canWrite('rule')) {
+		_sectionStale.rule = false;
+		cloneRules(data || {});
+		renderRuleTable();
+	} else {
+		heldSections.push('rule');
+		_sectionStale.rule = true;
+	}
+
+	if (canWrite('reservation')) {
+		_sectionStale.reservation = false;
+		cloneReservations(data || {});
+		renderReservationTable();
+	} else {
+		heldSections.push('reservation');
+		_sectionStale.reservation = true;
+	}
+
+	// 히스토리는 읽기 전용이라 항상 갱신
 	cloneGenerateHistory(data || {});
-	renderMemberTables();
-	renderConstraintTable();
-	renderRuleTable();
-	renderReservationTable();
 	renderGenerateHistoryTable();
+
 	setFieldAvailability(type);
 	updateConditionalRows(type);
 	// 에디터 세션 타이머 (online 상태 + sessionStart 존재 시)
 	syncEditorSessionTimer(type, data);
 	_editorDataCache = data;
+
+	_pendingRemoteData = heldSections.length ? { key, type, data } : null;
 }
 
 function syncEditorSessionTimer(type, data) {
@@ -1252,6 +1409,7 @@ function buildItemButton(type, key, data) {
 	button.addEventListener('click', async () => {
 		showEditorView();
 		selected = { type, key };
+		resetEditorGuardState();
 		setButtonsEnabled(true);
 		setEditorHeader();
 		applySelectionStyles();
@@ -1781,6 +1939,39 @@ function removeEmptyReservationRows() {
 	}
 }
 
+// 전체 저장 시 낡은(원격 변경을 놓친) 섹션을 어떻게 처리할지 결정한다.
+// - 편집하지 않은 낡은 섹션: 저장 대상에서 제외 (다른 화면의 변경을 지우지 않음)
+// - 편집까지 한 낡은 섹션: 충돌이므로 사용자에게 확인
+// 반환값 null이면 저장 중단.
+function resolveStaleSectionsBeforeFullSave() {
+	const stale = getStaleSections();
+	if (!stale.length) {
+		return { excludeSections: [] };
+	}
+	const conflicted = stale.filter((section) => _sectionDirty[section]);
+	const untouched = stale.filter((section) => !_sectionDirty[section]);
+
+	if (conflicted.length) {
+		const message = `다른 화면에서 ${getSectionLabels(conflicted)} 영역이 변경되었습니다.\n`
+			+ `지금 전체 저장하면 그 변경 내용이 이 화면의 값으로 덮어써집니다.\n\n계속 저장하시겠습니까?`;
+		if (!confirm(message)) {
+			return null;
+		}
+	}
+	return { excludeSections: untouched };
+}
+
+// 특정 섹션들을 제외한 전체 저장 payload
+function buildFullPayloadExcluding(type, excludeSections) {
+	const payload = buildPayloadFromForm(type);
+	excludeSections.forEach((section) => {
+		getSectionFieldKeys(section).forEach((fieldKey) => {
+			delete payload[fieldKey];
+		});
+	});
+	return payload;
+}
+
 async function saveSelected() {
 	if (!selected.type || !selected.key) {
 		return;
@@ -1789,10 +1980,15 @@ async function saveSelected() {
 	removeEmptyConstraintRows();
 	removeEmptyRuleRows();
 	removeEmptyReservationRows();
-	const payload = buildPayloadFromForm(selected.type);
+	const resolution = resolveStaleSectionsBeforeFullSave();
+	if (!resolution) {
+		return;
+	}
+	const payload = buildFullPayloadExcluding(selected.type, resolution.excludeSections);
 	_isSaving = true;
 	try {
 		await savePayloadByType(selected.type, selected.key, payload);
+		clearAllSectionDirty();
 		await loadSelectedItem();
 	} finally {
 		_isSaving = false;
@@ -1808,10 +2004,15 @@ async function syncSelected() {
 	removeEmptyConstraintRows();
 	removeEmptyRuleRows();
 	removeEmptyReservationRows();
-	const payload = buildPayloadFromForm(selected.type);
+	const resolution = resolveStaleSectionsBeforeFullSave();
+	if (!resolution) {
+		return;
+	}
+	const payload = buildFullPayloadExcluding(selected.type, resolution.excludeSections);
 	_isSaving = true;
 	try {
 		await savePayloadByType(selected.type, selected.key, payload);
+		clearAllSectionDirty();
 		await broadcastSyncTrigger(selected.type, selected.key, 'all');
 		await loadSelectedItem();
 	} finally {
@@ -1825,6 +2026,22 @@ async function executeSectionAction(section, action) {
 		return;
 	}
 	sanitizeDraftBySection(section);
+	// 이 섹션에 다른 화면의 변경이 도착했는데 반영하지 못한 상태라면
+	if (_sectionStale[section]) {
+		if (!_sectionDirty[section]) {
+			// 내가 건드린 게 없으니 덮어쓸 이유가 없다 — 최신 값으로 되돌리고 끝낸다
+			clearSectionDirty(section);
+			_sectionStale[section] = false;
+			applyPendingRemoteData();
+			showToast(`${getSectionLabel(section)} 최신 내용으로 갱신했습니다.`);
+			return;
+		}
+		const message = `다른 화면에서 ${getSectionLabel(section)} 영역이 변경되었습니다.\n`
+			+ `지금 저장하면 그 변경 내용이 이 화면의 값으로 덮어써집니다.\n\n계속 저장하시겠습니까?`;
+		if (!confirm(message)) {
+			return;
+		}
+	}
 	const sectionPayload = buildSectionPayload(selected.type, section);
 	if (!Object.keys(sectionPayload).length) {
 		showToast('저장할 항목이 없습니다.');
@@ -1835,6 +2052,7 @@ async function executeSectionAction(section, action) {
 	_isSaving = true;
 	try {
 		await savePayloadByType(selected.type, selected.key, sectionPayload);
+		clearSectionDirty(section);
 		if (action === 'sync') {
 			await broadcastSyncTrigger(selected.type, selected.key, syncType);
 		}
@@ -2219,7 +2437,10 @@ function bindEvents() {
 					.filter((batch) => batch.length > 0);
 				_isSaving = true;
 				savePayloadByType(selected.type, selected.key, { reservations: reservations.length ? reservations : null })
-					.then(() => loadSelectedItem())
+					.then(() => {
+						clearSectionDirty('reservation');
+						return loadSelectedItem();
+					})
 					.catch(() => showToast('삭제 저장 실패'))
 					.finally(() => { _isSaving = false; });
 			}
@@ -2460,6 +2681,7 @@ async function openItemFromHistory(type, key) {
 	if (!key || key === '-') return;
 	showEditorView();
 	selected = { type, key };
+	resetEditorGuardState();
 	setButtonsEnabled(true);
 	setEditorHeader();
 	applySelectionStyles();
@@ -2700,6 +2922,54 @@ function showEditorView() {
 	if (editorPanel) editorPanel.style.display = '';
 }
 
+// 각 섹션에서 입력/행 추가가 일어나면 "편집 중"으로 표시해 원격 갱신이 덮어쓰지 않게 한다
+function bindEditorDirtyTracking() {
+	const markFromEvent = (section) => () => markSectionDirty(section);
+
+	Object.keys(EDITOR_SECTION_CONTAINER_IDS).forEach((section) => {
+		EDITOR_SECTION_CONTAINER_IDS[section].forEach((containerId) => {
+			const container = document.getElementById(containerId);
+			if (!container) {
+				return;
+			}
+			container.addEventListener('input', markFromEvent(section), true);
+			container.addEventListener('change', markFromEvent(section), true);
+		});
+	});
+
+	getOptionFieldIds().forEach((fieldId) => {
+		const el = document.getElementById(fieldId);
+		if (!el) {
+			return;
+		}
+		el.addEventListener('input', markFromEvent('option'), true);
+		el.addEventListener('change', markFromEvent('option'), true);
+	});
+
+	// 행 추가(+) 버튼: 아직 저장되지 않은 빈 행도 보호 대상
+	[
+		['constraintAddBtn', 'constraint'],
+		['ruleAddBtn', 'rule'],
+		['reservationAddBtn', 'reservation']
+	].forEach(([btnId, section]) => {
+		const btn = document.getElementById(btnId);
+		if (btn) {
+			btn.addEventListener('click', markFromEvent(section), true);
+		}
+	});
+	document.querySelectorAll('.member-add-btn[data-list]').forEach((btn) => {
+		btn.addEventListener('click', markFromEvent('member'), true);
+	});
+
+	const applyBtn = document.getElementById('remoteChangeApplyBtn');
+	if (applyBtn) {
+		applyBtn.addEventListener('click', () => {
+			applyPendingRemoteData({ force: true });
+			showToast('최신 내용을 반영했습니다.');
+		});
+	}
+}
+
 function bindHistoryNav() {
 	const navBtn = document.getElementById('historyNavBtn');
 	if (navBtn) navBtn.addEventListener('click', showHistoryView);
@@ -2715,6 +2985,7 @@ async function bootstrap() {
 	initAccordion();
 	initTheme();
 	bindEvents();
+	bindEditorDirtyTracking();
 	bindNewProfileModal();
 	bindHistoryNav();
 	setButtonsEnabled(false);
