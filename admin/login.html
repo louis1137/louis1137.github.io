@@ -56,6 +56,17 @@
 			color: var(--muted);
 		}
 
+		/* 입력 확인 보조: Caps Lock · 한글 입력 경고 */
+		.input-warning {
+			margin-top: 6px;
+			font-size: 12px;
+			color: #f59e0b;
+		}
+
+		.input-warning:empty {
+			display: none;
+		}
+
 		.remember-row {
 			display: flex;
 			align-items: center;
@@ -128,7 +139,11 @@
 			<h1>관리자 로그인</h1>
 			<p>비밀번호를 입력하면 관리자 페이지로 이동합니다.</p>
 			<div id="loginSection" class="login-section">
-				<input id="adminPasswordInput" class="login-input" type="password" placeholder="비밀번호" required>
+				<div class="password-wrap">
+					<input id="adminPasswordInput" class="login-input" type="password" placeholder="비밀번호" required>
+					<button id="togglePasswordBtn" class="password-eye-btn" type="button" aria-label="비밀번호 보기" aria-pressed="false">👁</button>
+				</div>
+				<div id="passwordInputWarning" class="input-warning" role="status" aria-live="polite"></div>
 				<label class="remember-row" for="rememberPasswordCheck">
 					<input id="rememberPasswordCheck" type="checkbox">
 					<span>비밀번호 기억하기</span>
@@ -280,9 +295,14 @@
 			const entered = passwordInput.value;
 			const savedPassword = await getAdminAccessPassword();
 			if (entered !== savedPassword) {
-				errorText.textContent = '비밀번호가 올바르지 않습니다.';
-				passwordInput.value = '';
+				const hints = [];
+				if (HANGUL_PATTERN.test(entered)) hints.push('한글이 섞여 있습니다');
+				if (capsLockOn) hints.push('Caps Lock이 켜져 있습니다');
+				errorText.textContent = hints.length
+					? `비밀번호가 올바르지 않습니다. (${hints.join(', ')})`
+					: '비밀번호가 올바르지 않습니다. 👁 버튼으로 입력한 값을 확인해 보세요.';
 				passwordInput.focus();
+				passwordInput.select();
 				return;
 			}
 			window.sessionStorage.setItem(ADMIN_ACCESS_SESSION_KEY, 'true');
@@ -341,6 +361,47 @@
 			passwordInput.value = '';
 			changePasswordMessage.textContent = '비밀번호가 변경되었습니다.';
 			setChangePasswordMode(false);
+		});
+
+		// ===== 입력 확인 보조: 보기 토글 · Caps Lock · 한글 입력 경고 =====
+		const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+		const passwordWarning = document.getElementById('passwordInputWarning');
+		const HANGUL_PATTERN = /[\u3131-\u318E\uAC00-\uD7A3]/;
+		let capsLockOn = false;
+
+		function updatePasswordWarning() {
+			const messages = [];
+			if (capsLockOn) messages.push('Caps Lock이 켜져 있습니다.');
+			if (HANGUL_PATTERN.test(passwordInput.value)) messages.push('한글이 입력되었습니다. 한/영 키를 확인하세요.');
+			passwordWarning.textContent = messages.join(' ');
+		}
+
+		function syncCapsLock(event) {
+			if (event && typeof event.getModifierState === 'function') {
+				capsLockOn = event.getModifierState('CapsLock');
+				updatePasswordWarning();
+			}
+		}
+
+		togglePasswordBtn.addEventListener('click', () => {
+			const show = passwordInput.type === 'password';
+			passwordInput.type = show ? 'text' : 'password';
+			togglePasswordBtn.textContent = show ? '🙈' : '👁';
+			togglePasswordBtn.setAttribute('aria-pressed', String(show));
+			togglePasswordBtn.setAttribute('aria-label', show ? '비밀번호 숨기기' : '비밀번호 보기');
+			passwordInput.focus();
+			const end = passwordInput.value.length;
+			passwordInput.setSelectionRange(end, end);
+		});
+
+		passwordInput.addEventListener('keydown', syncCapsLock);
+		passwordInput.addEventListener('keyup', syncCapsLock);
+		passwordInput.addEventListener('input', updatePasswordWarning);
+
+		// 기억된 비밀번호 · 브라우저 자동완성으로 칸이 미리 채워져 있으면
+		// 이어서 친 글자가 뒤에 덧붙어 틀리게 된다 → 포커스 시 전체 선택해 새로 치면 교체되게
+		passwordInput.addEventListener('focus', () => {
+			if (passwordInput.value) passwordInput.select();
 		});
 
 		loadRememberedPassword();

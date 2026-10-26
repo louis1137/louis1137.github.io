@@ -2192,11 +2192,13 @@ function bindEvents() {
 		if (target.matches('button[data-role="gender"]')) {
 			person.gender = person.gender === 'male' ? 'female' : 'male';
 			target.textContent = getGenderLabel(person.gender);
+			markSectionDirty('member');
 			return;
 		}
 
 		if (target.matches('button[data-role="delete"]')) {
 			memberDraft[listKey].splice(index, 1);
+			markSectionDirty('member');
 			renderMemberTables();
 		}
 	};
@@ -2216,6 +2218,7 @@ function bindEvents() {
 					return;
 				}
 				moveArrayItem(memberDraft.people, fromIndex, toIndex);
+				markSectionDirty('member');
 			},
 			render: () => renderMemberTables()
 		});
@@ -2227,6 +2230,7 @@ function bindEvents() {
 					return;
 				}
 				moveArrayItem(memberDraft.inactivePeople, fromIndex, toIndex);
+				markSectionDirty('member');
 			},
 			render: () => renderMemberTables()
 		});
@@ -2281,12 +2285,14 @@ function bindEvents() {
 				return;
 			}
 			constraintDraft.splice(index, 1);
+			markSectionDirty('constraint');
 			renderConstraintTable();
 		});
 
 		bindReorderDnD(constraintTableBody, {
 			reorder: (fromIndex, toIndex) => {
 				moveArrayItem(constraintDraft, fromIndex, toIndex);
+				markSectionDirty('constraint');
 			},
 			render: () => renderConstraintTable()
 		});
@@ -2378,12 +2384,14 @@ function bindEvents() {
 				return;
 			}
 			ruleDraft.splice(index, 1);
+			markSectionDirty('rule');
 			renderRuleTable();
 		});
 
 		bindReorderDnD(ruleTableBody, {
 			reorder: (fromIndex, toIndex) => {
 				moveArrayItem(ruleDraft, fromIndex, toIndex);
+				markSectionDirty('rule');
 			},
 			render: () => renderRuleTable()
 		});
@@ -2430,6 +2438,7 @@ function bindEvents() {
 				return;
 			}
 			reservationDraft.splice(index, 1);
+			markSectionDirty('reservation');
 			renderReservationTable();
 			if (selected.type && selected.key) {
 				const reservations = reservationDraft
@@ -2449,6 +2458,7 @@ function bindEvents() {
 		bindReorderDnD(reservationTableBody, {
 			reorder: (fromIndex, toIndex) => {
 				moveArrayItem(reservationDraft, fromIndex, toIndex);
+				markSectionDirty('reservation');
 			},
 			render: () => renderReservationTable()
 		});
@@ -2961,11 +2971,15 @@ function bindEditorDirtyTracking() {
 		btn.addEventListener('click', markFromEvent('member'), true);
 	});
 
-	const applyBtn = document.getElementById('remoteChangeApplyBtn');
-	if (applyBtn) {
-		applyBtn.addEventListener('click', () => {
-			applyPendingRemoteData({ force: true });
-			showToast('최신 내용을 반영했습니다.');
+	// 포커스만으로 잠겨 있던 섹션은 커서가 빠져나가는 즉시 조용히 최신 값으로 채운다
+	const editorForm = document.getElementById('editorForm');
+	if (editorForm) {
+		editorForm.addEventListener('focusout', () => {
+			setTimeout(() => {
+				if (_pendingRemoteData) {
+					applyPendingRemoteData();
+				}
+			}, 0);
 		});
 	}
 }
