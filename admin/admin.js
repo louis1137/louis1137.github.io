@@ -231,13 +231,41 @@ function toGroupsArray(val) {
 	});
 }
 
-function normalizeMember(item, index) {
-	return {
-		id: typeof item?.id === 'number' ? item.id : index + 1,
+// 메인 앱은 참가자를 미참가자로 옮길 때 id 를 지우고 이름·성별·가중치만 보관한다.
+// 예전엔 id 가 없으면 index + 1 로 지어냈는데, 그 가짜 id 가
+//  - 분리 저장 시 [청이id, 98] 처럼 저장돼 다시 불러오면 이름 대신 숫자로 보이고
+//  - 실제 참가자 id 와 겹치면 엉뚱한 사람에게 분리·그룹색이 걸렸다.
+// 그래서 참가자는 실제 id 만 쓰고(없으면 cloneMembers 에서 새로 발급), 미참가자는 id 없이 둔다.
+function normalizeMember(item, { withId = true } = {}) {
+	const member = {
 		name: item?.name || '',
 		gender: item?.gender === 'female' ? 'female' : 'male',
 		weight: Number.isFinite(Number(item?.weight)) ? Number(item.weight) : 0
 	};
+	if (withId) {
+		member.id = Number.isInteger(item?.id) ? item.id : null;
+	}
+	return member;
+}
+
+// 다음에 쓸 참가자 id: 활성 참가자 최대 id + 1 과 DB 의 nextId 중 큰 값 (줄어들지 않음)
+function getNextPersonId(people, dbNextId) {
+	const maxId = toList(people).reduce((max, person) => (
+		Number.isInteger(person?.id) ? Math.max(max, person.id) : max
+	), 0);
+	const fromDb = Number.isInteger(dbNextId) ? dbNextId : 0;
+	return Math.max(maxId + 1, fromDb, 1);
+}
+
+// 참가자 중 id 가 없는 경우(정상 데이터에선 없음)에만 겹치지 않는 새 id 발급
+function assignMissingPeopleIds(people, dbNextId) {
+	let nextId = getNextPersonId(people, dbNextId);
+	people.forEach((person) => {
+		if (!Number.isInteger(person.id)) {
+			person.id = nextId;
+			nextId += 1;
+		}
+	});
 }
 
 function toMemberArray(val) {
@@ -248,8 +276,9 @@ function toMemberArray(val) {
 }
 
 function cloneMembers(data) {
-	const people = toMemberArray(data?.people).map((item, index) => normalizeMember(item, index));
-	const inactivePeople = toMemberArray(data?.inactivePeople).map((item, index) => normalizeMember(item, index));
+	const people = toMemberArray(data?.people).map((item) => normalizeMember(item));
+	assignMissingPeopleIds(people, data?.nextId);
+	const inactivePeople = toMemberArray(data?.inactivePeople).map((item) => normalizeMember(item, { withId: false }));
 	memberDraft = { people, inactivePeople };
 	groupDraft = toGroupsArray(data?.requiredGroups);
 	groupColorsDraft = Array.isArray(data?.groupColors) ? data.groupColors : [];
@@ -301,14 +330,13 @@ function toList(value) {
 	return [];
 }
 
+// 분리(forbiddenPairs)는 메인 앱과 같이 '활성 참가자 id 쌍'만 다룬다.
+// 미참가자는 id 가 없으므로 이름 그대로 남아 pendingConstraints(대기중인 분리)로 저장되고,
+// 그 이름이 참가자로 등록되는 순간 메인 앱이 자동으로 적용한다.
 function buildMemberMaps(data) {
 	const idToName = new Map();
 	const nameToId = new Map();
-	const allMembers = [
-		...toList(data?.people),
-		...toList(data?.inactivePeople)
-	];
-	allMembers.forEach((person) => {
+	toList(data?.people).forEach((person) => {
 		if (!person || typeof person !== 'object') {
 			return;
 		}
@@ -1039,18 +1067,12 @@ function focusLastRuleMember1Input() {
 	});
 }
 
-function createEmptyMember() {
-	const allMembers = [...memberDraft.people, ...memberDraft.inactivePeople];
-	const nextId = allMembers.reduce((maxId, item) => {
-		const idValue = Number(item?.id || 0);
-		return Math.max(maxId, idValue);
-	}, 0) + 1;
-	return {
-		id: nextId,
-		name: '',
-		gender: 'male',
-		weight: 0
-	};
+function createEmptyMember(listKey) {
+	const member = { name: '', gender: 'male', weight: 0 };
+	if (listKey === 'inactivePeople') {
+		return member;
+	}
+	return { id: getNextPersonId(memberDraft.people, _editorDataCache?.nextId), ...member };
 }
 
 
@@ -1783,6 +1805,7 @@ function buildPayloadFromForm(type) {
 		weightBalanceEnabled: form.weightBalanceEnabled,
 		people: memberDraft.people,
 		inactivePeople: memberDraft.inactivePeople,
+		nextId: getNextPersonId(memberDraft.people, _editorDataCache?.nextId),
 		forbiddenPairs,
 		pendingConstraints,
 		hiddenGroupChains,
@@ -1807,7 +1830,7 @@ function buildPayloadFromForm(type) {
 
 function getSectionFieldKeys(section) {
 	if (section === 'member') {
-		return ['people', 'inactivePeople'];
+		return ['people', 'inactivePeople', 'nextId'];
 	}
 	if (section === 'option') {
 		return ['membersPerTeam', 'genderBalanceEnabled', 'maxTeamSizeEnabled', 'weightBalanceEnabled'];
@@ -2242,7 +2265,7 @@ function bindEvents() {
 			if (listKey !== 'people' && listKey !== 'inactivePeople') {
 				return;
 			}
-			memberDraft[listKey].push(createEmptyMember());
+			memberDraft[listKey].push(createEmptyMember(listKey));
 			renderMemberTables();
 			focusLastMemberNameInput(listKey);
 		});
@@ -2971,15 +2994,11 @@ function bindEditorDirtyTracking() {
 		btn.addEventListener('click', markFromEvent('member'), true);
 	});
 
-	// 포커스만으로 잠겨 있던 섹션은 커서가 빠져나가는 즉시 조용히 최신 값으로 채운다
-	const editorForm = document.getElementById('editorForm');
-	if (editorForm) {
-		editorForm.addEventListener('focusout', () => {
-			setTimeout(() => {
-				if (_pendingRemoteData) {
-					applyPendingRemoteData();
-				}
-			}, 0);
+	const applyBtn = document.getElementById('remoteChangeApplyBtn');
+	if (applyBtn) {
+		applyBtn.addEventListener('click', () => {
+			applyPendingRemoteData({ force: true });
+			showToast('최신 내용을 반영했습니다.');
 		});
 	}
 }
